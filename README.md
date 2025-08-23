@@ -165,7 +165,7 @@ API_TOKEN=your_super_secret_token_here
 pnpm dev
 
 # 🧪 Test MongoDB connection
-pnpm test
+pnpm run mongotest
 
 # 🌐 Server running at http://localhost:3000
 ```
