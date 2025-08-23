@@ -2,11 +2,13 @@
   "name": "simple-api-mongodb-crud",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "cls && next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "mongotest": "npx ts-node mongo-test.ts"
   },
   "dependencies": {
     "dotenv": "^17.2.1",
