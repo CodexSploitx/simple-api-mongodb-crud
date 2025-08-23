@@ -22,7 +22,7 @@ _A lightning-fast, production-ready MongoDB REST API built with Next.js and Type
 <table>
   <tr>
     <td align="center" width="33%">
-      <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Rocket.png" width="50" height="50"/>
+      <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f680.svg" width="50" height="50"/>
       <h3>🚀 Lightning Fast</h3>
       <p>Built on Next.js 14 with optimized MongoDB connections and singleton pattern for maximum performance</p>
     </td>
