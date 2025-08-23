@@ -646,7 +646,7 @@ pnpm install
 pnpm dev
 
 # 🧪 Run tests
-pnpm test
+pnpm run mongotest
 
 # ✨ Run linting
 pnpm lint
