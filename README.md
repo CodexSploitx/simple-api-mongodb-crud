@@ -57,7 +57,7 @@ _A **Modular and Secure** API for MongoDB, built with **Next.js**, designed to p
 
 ```bash
 git clone https://github.com/CodexSploitx/simple-api-mongodb-crud.git
-cd simple-mongo-rest-api
+cd simple-api-mongodb-crud
 pnpm install  # or npm install
 ```
 
