@@ -61,10 +61,6 @@ cd simple-api-mongodb-crud
 pnpm install  # or npm install
 ```
 
-**🔧 Environment Setup:**
-
-Create a `.env` file:
-
 ### 3️⃣ Environment Setup
 
 Create a `.env.local` file in the root directory:
