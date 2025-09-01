@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findAllDocuments } from "@/services/crudService";
+import { findDocuments } from "@/services/crudService";
 import { authToken } from "@/middleware/authToken";
 import { validateForQuery } from "@/lib/mongo";
 import { validateHttpMethod, getRoutePattern } from "@/lib/httpMethodValidator";
@@ -13,10 +13,22 @@ interface RouteParams {
   }>;
 }
 
+interface PaginatedResponse {
+  documents: Document[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
 export async function GET(
   req: NextRequest,
   { params }: RouteParams
-): Promise<NextResponse<SuccessResponse<Document[]> | ErrorResponse>> {
+): Promise<NextResponse<SuccessResponse<PaginatedResponse> | ErrorResponse>> {
   try {
     // 1. Validar método HTTP
     const routePattern = getRoutePattern(req.nextUrl.pathname);
@@ -59,13 +71,74 @@ export async function GET(
       return NextResponse.json(errorResponse, { status: 404 });
     }
 
-    // 7. Obtener todos los documentos
-    const documents = await findAllDocuments(decodedDb, decodedCollection);
+    // 7. Extraer parámetros de query para paginación
+    const searchParams = req.nextUrl.searchParams;
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const requestedLimit = parseInt(searchParams.get('limit') || '50');
+    
+    // LÍMITE MÁXIMO DE SEGURIDAD: No más de 1000 registros por página
+    const limit = Math.min(requestedLimit, 1000);
+    const skip = (page - 1) * limit;
 
-    const successResponse: SuccessResponse<Document[]> = {
+    // 8. Construir filtros de búsqueda
+    const query: Document = {};
+    
+    // Soporte para búsquedas con regex (más eficiente)
+    const searchField = searchParams.get('searchField');
+    const searchValue = searchParams.get('searchValue');
+    const useRegex = searchParams.get('regex') === 'true';
+    
+    if (searchField && searchValue) {
+      if (useRegex) {
+        // Usar regex con índices para mejor rendimiento
+        query[searchField] = { 
+          $regex: searchValue, 
+          $options: 'i' // case insensitive
+        };
+      } else {
+        // Búsqueda exacta (más rápida)
+        query[searchField] = searchValue;
+      }
+    }
+
+    // 9. Configurar ordenamiento
+    const sortField = searchParams.get('sortField') || '_id';
+    const sortOrder = searchParams.get('sortOrder') === 'desc' ? -1 : 1;
+    const sort = { [sortField]: sortOrder };
+
+    // 10. Obtener documentos con paginación
+    const result = await findDocuments(decodedDb, decodedCollection, query, {
+      limit,
+      skip,
+      sort
+    });
+
+    // 11. Calcular metadatos de paginación
+    // Para obtener el total real, necesitamos hacer una consulta de conteo
+    const { getCollection } = await import('@/lib/mongo');
+    const col = await getCollection(decodedDb, decodedCollection);
+    const totalDocuments = await col.countDocuments(query);
+    
+    const totalPages = Math.ceil(totalDocuments / limit);
+    const hasNext = page < totalPages;
+    const hasPrev = page > 1;
+
+    const paginatedResponse: PaginatedResponse = {
+      documents: result.documents,
+      pagination: {
+        page,
+        limit,
+        total: totalDocuments,
+        totalPages,
+        hasNext,
+        hasPrev
+      }
+    };
+
+    const successResponse: SuccessResponse<PaginatedResponse> = {
       success: true,
-      data: documents,
-      message: `Se encontraron ${documents.length} documentos en ${decodedDb}.${decodedCollection}`,
+      data: paginatedResponse,
+      message: `Página ${page} de ${totalPages}. Se encontraron ${result.documents.length} documentos de ${totalDocuments} totales en ${decodedDb}.${decodedCollection}`,
     };
 
     return NextResponse.json(successResponse, { status: 200 });
