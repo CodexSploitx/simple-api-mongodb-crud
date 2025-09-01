@@ -79,7 +79,7 @@ export async function findDocuments(
 
   // Ejecutar consulta
   const documents = await collection.find(query, findOptions).toArray();
-  const count = documents.length;
+  const count = documents.length; // ❌ PROBLEMA: Esto devuelve el count de los documentos encontrados, no el total
 
   return { documents, count };
 }
