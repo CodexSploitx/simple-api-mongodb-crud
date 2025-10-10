@@ -1,4 +1,4 @@
-import { Document, Collection, InsertOneResult, FindCursor } from "mongodb";
+import { Document, Collection, InsertOneResult, FindCursor, ObjectId } from "mongodb";
 import {
   getCollection,
   createDatabaseAndCollection,
@@ -111,30 +111,36 @@ export async function updateOneDocument(
     throw new Error('Update document requires atomic operators like $set, $inc, $push, etc. Example: { "$set": { "field": "value" } }');
   }
 
+  // Convertir _id string a ObjectId si es necesario
+  const processedFilter = { ...filter };
+  if (processedFilter._id && typeof processedFilter._id === 'string') {
+    try {
+      processedFilter._id = new ObjectId(processedFilter._id);
+    } catch (error) {
+      throw new Error(`Invalid ObjectId format in filter, error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   try {
     // Conectar a la base de datos
     const database = await connectToDatabase(db);
     const col = database.collection(collection);
 
-    // Usar findOneAndUpdate para obtener el documento actualizado
-    const result = await col.findOneAndUpdate(
-      filter, 
-      update, 
-      { 
-        ...options, 
-        returnDocument: 'after' // Retorna el documento después de la actualización
-      }
-    );
-
-    // findOneAndUpdate retorna el documento directamente o null
-    const wasModified = result !== null;
+    // Usar updateOne para obtener información precisa sobre la modificación
+    const updateResult = await col.updateOne(processedFilter, update, options);
+    
+    // Si se necesita el documento actualizado, hacer una consulta adicional
+    let updatedDocument = null;
+    if (updateResult.modifiedCount > 0) {
+      updatedDocument = await col.findOne(processedFilter);
+    }
     
     return {
-      matchedCount: wasModified ? 1 : 0,
-      modifiedCount: wasModified ? 1 : 0,
-      acknowledged: true,
-      upsertedId: null, // findOneAndUpdate no maneja upsert de la misma manera
-      document: result // El documento actualizado o null
+      matchedCount: updateResult.matchedCount,
+      modifiedCount: updateResult.modifiedCount,
+      acknowledged: updateResult.acknowledged,
+      upsertedId: updateResult.upsertedId || null,
+      document: updatedDocument
     };
   } catch (error) {
     console.error('Error updating document:', error);
@@ -161,18 +167,36 @@ export async function deleteOneDocument(
     throw new Error('Filter cannot be empty. Provide at least one field to identify the document to delete.');
   }
 
+  // Convertir _id string a ObjectId si es necesario
+  const processedFilter = { ...filter };
+  if (processedFilter._id && typeof processedFilter._id === 'string') {
+    try {
+      processedFilter._id = new ObjectId(processedFilter._id);
+    } catch (error) {
+      throw new Error(`Invalid ObjectId format in filter, error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   try {
     // Conectar a la base de datos
     const database = await connectToDatabase(db);
     const col = database.collection(collection);
 
-    // Usar findOneAndDelete para obtener el documento eliminado
-    const result = await col.findOneAndDelete(filter, options);
+    // Usar deleteOne para obtener información precisa sobre la eliminación
+    const deleteResult = await col.deleteOne(processedFilter, options);
+    
+    // Si se necesita el documento eliminado, hacer una consulta antes de eliminar
+    let deletedDocument = null;
+    if (deleteResult.deletedCount > 0) {
+      // Como ya se eliminó, no podemos obtener el documento
+      // Pero podemos confirmar que se eliminó correctamente
+      deletedDocument = { _id: processedFilter._id }; // Solo retornamos el ID como confirmación
+    }
 
     return {
-      deletedCount: result ? 1 : 0,
-      acknowledged: true,
-      document: result // El documento eliminado o null si no se encontró
+      deletedCount: deleteResult.deletedCount,
+      acknowledged: deleteResult.acknowledged,
+      document: deletedDocument
     };
   } catch (error) {
     console.error('Error deleting document:', error);

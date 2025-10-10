@@ -1,0 +1,54 @@
+{
+  "name": "test-connection-suite",
+  "version": "1.0.0",
+  "description": "Sistema de testing modular para MongoDB y API endpoints",
+  "type": "module",
+  "main": "test-runner.js",
+  "scripts": {
+    "test": "tsx test-runner.ts",
+    "test:all": "tsx test-runner.ts all",
+    "test:mongo": "tsx test-runner.ts mongo",
+    "test:api": "tsx test-runner.ts api",
+    "test:export": "tsx test-runner.ts all --export=test-results.json",
+    "test:debug": "LOG_LEVEL=DEBUG tsx test-runner.ts",
+    "test:watch": "nodemon --exec \"npm run test\" --ext ts,js,json",
+    "build": "tsc",
+    "clean": "rm -rf dist *.log test-results.json",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write ."
+  },
+  "keywords": [
+    "testing",
+    "mongodb",
+    "api",
+    "typescript",
+    "modular"
+  ],
+  "author": "Test Connection Suite",
+  "license": "MIT",
+  "dependencies": {
+    "mongodb": "^6.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "nodemon": "^3.0.0",
+    "prettier": "^3.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-repo/simple-api-mongodb-crud.git",
+    "directory": "test-connection"
+  },
+  "bugs": {
+    "url": "https://github.com/your-repo/simple-api-mongodb-crud/issues"
+  },
+  "homepage": "https://github.com/your-repo/simple-api-mongodb-crud#readme"
+}

@@ -40,6 +40,14 @@ export function validateDbAndCollectionNames(db: string, collection: string): vo
     throw new Error("Collection name is required");
   }
   
+  // Validate maximum length (MongoDB limits)
+  if (db.length > 64) {
+    throw new Error("Database name too long (max 64 characters)");
+  }
+  if (collection.length > 64) {
+    throw new Error("Collection name too long (max 64 characters)");
+  }
+  
   // Additional validations for valid MongoDB names
   const invalidChars = /[\\/$\"\s]/;
   if (invalidChars.test(db)) {
