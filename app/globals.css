@@ -21,6 +21,39 @@
 
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: var(--text);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Estilo para el fondo de estrellas animado */
+.stars {
+  background: #000 url(https://www.transparenttextures.com/patterns/stardust.png);
+  animation: sparkle 60s linear infinite;
+}
+@keyframes sparkle {
+  from { background-position: 0 0; }
+  to { background-position: -1000px 500px; }
+}
+
+/* Animación de flotar para el astronauta */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Efecto de brillo (glow) */
+.text-glow {
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3), 0 0 20px rgba(75, 0, 130, 0.4);
+}
+.button-glow {
+  box-shadow: 0 0 15px rgba(138, 43, 226, 0.6), 0 0 25px rgba(138, 43, 226, 0.4);
+  transition: all 0.3s ease-in-out;
+}
+.button-glow:hover {
+  box-shadow: 0 0 25px rgba(138, 43, 226, 0.9), 0 0 40px rgba(138, 43, 226, 0.6);
+  transform: translateY(-2px);
 }

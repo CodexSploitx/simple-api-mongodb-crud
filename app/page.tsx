@@ -1,5 +1,15 @@
 "use client";
 import React, { useState, useCallback } from "react";
+import { getThemeStyles, getUIClasses } from "../styles/colors";
+import Header from "./components/Header.tsx";
+import Sidebar from "./components/Sidebar";
+import DocumentGrid from "./components/DocumentGrid";
+import Pagination from "./components/Pagination";
+import SearchModal from "./components/SearchModal";
+import CreateModal from "./components/CreateModal";
+import EditModal from "./components/EditModal";
+import CreateDbModal from "./components/CreateDbModal";
+import MissingResource from "./components/MissingResource";
 
 interface Document {
   _id: string;
@@ -30,10 +40,12 @@ const Dashboard = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalDocuments, setTotalDocuments] = useState(0);
   // Estados adicionales que faltaban
-  const [newDocument, setNewDocument] = useState("");
+  // Deprecated: newDocument replaced by newDocJson
+  // const [newDocument, setNewDocument] = useState("");
   const [newDbName, setNewDbName] = useState("");
   const [newCollectionName, setNewCollectionName] = useState("");
   const [documentsPerPage] = useState(10);
+  const [fieldNames, setFieldNames] = useState<string[]>([]);
 
   const API_TOKEN = process.env.NEXT_PUBLIC_API_TOKEN;
 
@@ -68,6 +80,7 @@ const Dashboard = () => {
       setConnectedDb("");
       setConnectedCollection("");
       setCurrentPage(1);
+      setFieldNames([]);
     }
   };
 
@@ -78,6 +91,7 @@ const Dashboard = () => {
       setConnectedDb("");
       setConnectedCollection("");
       setCurrentPage(1);
+      setFieldNames([]);
     }
   };
 
@@ -94,6 +108,7 @@ const Dashboard = () => {
     setCurrentPage(1);
     setTotalDocuments(0);
     setTotalPages(0);
+    setFieldNames([]);
 
     try {
       // Usar la nueva función loadDocuments con paginación
@@ -106,9 +121,11 @@ const Dashboard = () => {
 
   // Función para cambiar de página
   const handlePageChange = (newPage: number) => {
+    // Usar siempre la conexión activa para paginar
+    if (!connectedDb || !connectedCollection) return;
     if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
       setCurrentPage(newPage);
-      loadDocuments(selectedDb, selectedCollection, newPage);
+      loadDocuments(connectedDb, connectedCollection, newPage);
     }
   };
 
@@ -119,10 +136,9 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const limit = 10; // Documentos por página
-      const skip = (page - 1) * limit;
       
       const response = await fetch(
-        `/api/${db}/${collection}?limit=${limit}&skip=${skip}`,
+        `/api/${db}/${collection}?page=${page}&limit=${limit}`,
         {
           headers: {
             Authorization: `Bearer ${API_TOKEN}`,
@@ -131,11 +147,23 @@ const Dashboard = () => {
       );
 
       if (response.ok) {
-        const data = await response.json();
-        setDocuments(data.documents || []);
-        setTotalDocuments(data.total || 0);
-        setTotalPages(Math.ceil((data.total || 0) / limit));
-        setCurrentPage(page);
+        const json = await response.json();
+        const payload = json?.data || {};
+        const docs = payload.documents || [];
+        const total = payload.pagination?.total ?? (Array.isArray(docs) ? docs.length : 0);
+        const pageNum = payload.pagination?.page ?? page;
+        const totalPagesCalc = payload.pagination?.totalPages ?? Math.ceil(total / limit);
+
+        setDocuments(docs);
+        // Calcular nombres de campos de los documentos cargados (solo nombres, sin datos)
+        const names = Array.isArray(docs)
+          ? Array.from(new Set(docs.flatMap((d: Record<string, unknown>) => Object.keys(d))))
+          : [];
+        setFieldNames(names);
+
+        setTotalDocuments(total);
+        setTotalPages(totalPagesCalc);
+        setCurrentPage(pageNum);
         setIsConnected(true);
         setConnectedDb(db);
         setConnectedCollection(collection);
@@ -150,6 +178,7 @@ const Dashboard = () => {
         setIsConnected(false);
         setConnectedDb("");
         setConnectedCollection("");
+        setFieldNames([]);
       }
     } catch (error) {
       console.error("Error loading documents:", error);
@@ -161,6 +190,7 @@ const Dashboard = () => {
       setIsConnected(false);
       setConnectedDb("");
       setConnectedCollection("");
+      setFieldNames([]);
     } finally {
       setLoading(false);
     }
@@ -181,8 +211,14 @@ const Dashboard = () => {
         }),
       });
       if (data.success) {
-        setDocuments(data.data || []);
-        setTotalDocuments(data.data?.length || 0);
+        const docs = data?.data?.documents || [];
+        const total = data?.data?.count ?? (Array.isArray(docs) ? docs.length : 0);
+        setDocuments(docs);
+        const names = Array.isArray(docs)
+          ? Array.from(new Set(docs.flatMap((d: Record<string, unknown>) => Object.keys(d))))
+          : [];
+        setFieldNames(names);
+        setTotalDocuments(total);
         setTotalPages(1);
         setCurrentPage(1);
       } else {
@@ -315,219 +351,64 @@ const Dashboard = () => {
     }
   }, [selectedDb, selectedCollection, API_TOKEN, loadDocuments]);
 
-  const themeClasses = darkMode
-    ? "bg-gray-900 text-gray-100 min-h-screen"
-    : "bg-gray-50 text-gray-900 min-h-screen";
-
-  const cardClasses = darkMode
-    ? "bg-gray-800 border border-gray-700 shadow-sm"
-    : "bg-white border border-gray-200 shadow-sm";
-
-  const inputClasses = darkMode
-    ? "bg-gray-800 border border-gray-600 text-gray-100 placeholder-gray-400 focus:border-gray-500 focus:ring-1 focus:ring-gray-500"
-    : "bg-white border border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-400 focus:ring-1 focus:ring-gray-400";
-
-  const buttonClasses = {
-    primary: darkMode
-      ? "bg-gray-700 hover:bg-gray-600 text-gray-100 border border-gray-600 transition-colors duration-200"
-      : "bg-gray-900 hover:bg-gray-800 text-white border border-gray-900 transition-colors duration-200",
-    secondary: darkMode
-      ? "bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-600 transition-colors duration-200"
-      : "bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 transition-colors duration-200",
-    danger: darkMode
-      ? "bg-red-900 hover:bg-red-800 text-red-100 border border-red-800 transition-colors duration-200"
-      : "bg-red-600 hover:bg-red-700 text-white border border-red-600 transition-colors duration-200",
-    success: darkMode
-      ? "bg-green-800 hover:bg-green-700 text-green-100 border border-green-700 transition-colors duration-200"
-      : "bg-green-600 hover:bg-green-700 text-white border border-green-600 transition-colors duration-200",
-    purple: darkMode
-      ? "bg-purple-800 hover:bg-purple-700 text-purple-100 border border-purple-700 transition-colors duration-200"
-      : "bg-purple-600 hover:bg-purple-700 text-white border border-purple-600 transition-colors duration-200",
-  };
+  const themeStyles = getThemeStyles(darkMode);
+  const { themeClasses, cardClasses, inputClasses, buttonClasses } = getUIClasses();
 
   return (
-    <div className={themeClasses}>
-      {/* Header profesional */}
-      <header className={`${cardClasses} rounded-none border-b p-4 mb-6`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4H4V7z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">MongoDB Admin</h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Database Management Console</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            {isConnected && (
-              <div className="flex items-center space-x-2 px-3 py-1 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-xs font-medium text-green-700 dark:text-green-300">
-                  {connectedDb}.{connectedCollection}
-                </span>
-              </div>
-            )}
-            
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className={`p-2 rounded-lg ${buttonClasses.secondary} text-sm`}
-            >
-              {darkMode ? (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className={themeClasses} style={themeStyles}>
+      <Header
+        darkMode={darkMode}
+        isConnected={isConnected}
+        connectedDb={connectedDb}
+        connectedCollection={connectedCollection}
+        onToggleDarkMode={() => setDarkMode(!darkMode)}
+        onOpenCreateModal={() => setShowCreateModal(true)}
+        onOpenCreateDbModal={() => {
+          const msg = error === "Database not found"
+            ? `La base de datos '${selectedDb}' no existe. Créala junto con '${selectedCollection}'.`
+            : error === "Collection not found"
+            ? `La colección '${selectedCollection}' no existe en '${selectedDb}'. Créala ahora.`
+            : "Crea una nueva base de datos y/o colección.";
+          setCreateModalMessage(msg);
+          setNewDbName(selectedDb);
+          setNewCollectionName(selectedCollection);
+          setShowCreateDbModal(true);
+        }}
+        cardClasses={cardClasses}
+        buttonClasses={buttonClasses}
+      />
 
       <div className="flex gap-6">
-        {/* Sidebar profesional */}
-        <aside className={`w-80 ${cardClasses} rounded-lg p-6 h-fit`}>
-          <div className="space-y-6">
-            {/* Connection Section */}
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                <svg className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
-                Connection
-              </h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Database
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedDb}
-                    onChange={(e) => handleDbChange(e.target.value)}
-                    placeholder="Enter database name"
-                    className={`w-full px-3 py-2 rounded-lg text-sm ${inputClasses}`}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Collection
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedCollection}
-                    onChange={(e) => handleCollectionChange(e.target.value)}
-                    placeholder="Enter collection name"
-                    className={`w-full px-3 py-2 rounded-lg text-sm ${inputClasses}`}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-3 mt-6">
-                <button
-                  onClick={() => loadDocuments(connectedDb, connectedCollection, 1)}
-                  disabled={loading || !isConnected}
-                  className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
-                    !isConnected ? buttonClasses.secondary : buttonClasses.primary
-                  }`}
-                >
-                  <span className="flex items-center justify-center space-x-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span>{loading ? "Loading..." : "Load Documents"}</span>
-                  </span>
-                </button>
-                
-                <button
-                  onClick={handleConnect}
-                  disabled={loading || !selectedDb || !selectedCollection}
-                  className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses.primary}`}
-                >
-                  <span className="flex items-center justify-center space-x-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                    <span>{loading ? "Connecting..." : "Connect"}</span>
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Actions Section */}
-            {selectedDb && selectedCollection && (
-              <div className="border-t pt-6">
-                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-                  </svg>
-                  Actions
-                </h2>
-                
-                <div className="space-y-3">
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${buttonClasses.primary}`}
-                  >
-                    <span className="flex items-center justify-center space-x-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      <span>Add Document</span>
-                    </span>
-                  </button>
-                  
-                  <button
-                    onClick={() => setShowCreateDbModal(true)}
-                    className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${buttonClasses.secondary}`}
-                  >
-                    <span className="flex items-center justify-center space-x-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                      <span>Create DB/Collection</span>
-                    </span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Statistics */}
-            {isConnected && (
-              <div className={`p-6 rounded-2xl border ${cardClasses}`}>
-                <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <span>Statistics</span>
-                </h3>
-                
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Total Documents:</span>
-                    <span className="font-semibold text-blue-600 dark:text-blue-400">{totalDocuments}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Current Page:</span>
-                    <span className="font-semibold text-purple-600 dark:text-purple-400">{currentPage} of {totalPages}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Per Page:</span>
-                    <span className="font-semibold text-green-600 dark:text-green-400">{documentsPerPage}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </aside>
+        <Sidebar
+          selectedDb={selectedDb}
+          selectedCollection={selectedCollection}
+          isConnected={isConnected}
+          loading={loading}
+          error={error}
+          cardClasses={cardClasses}
+          inputClasses={inputClasses}
+          buttonClasses={buttonClasses}
+          documentsPerPage={documentsPerPage}
+          totalDocuments={totalDocuments}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onDbChange={handleDbChange}
+          onCollectionChange={handleCollectionChange}
+          onLoadDocuments={() => loadDocuments(connectedDb, connectedCollection, 1)}
+          onConnect={handleConnect}
+          onOpenCreateDbModal={() => {
+            const msg = error === "Database not found"
+              ? `The database '${selectedDb}' does not exist. Create it now along with '${selectedCollection}'.`
+              : error === "Collection not found"
+              ? `The collection '${selectedCollection}' does not exist in '${selectedDb}'. Create it now.`
+              : "Create a new database and/or collection.";
+            setCreateModalMessage(msg);
+            // Prefill with current selections
+            setNewDbName(selectedDb);
+            setNewCollectionName(selectedCollection);
+            setShowCreateDbModal(true);
+          }}
+        />
 
         {/* Main Content */}
         <div className="flex-1">
@@ -539,32 +420,28 @@ const Dashboard = () => {
                   : "bg-red-50 border-red-200 text-red-700"
               }`}>
                 <div className="flex items-center space-x-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                <span>{error}</span>
+                  <span className="material-symbols-outlined text-red-500 text-base">error</span>
+                  <span>{error}</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {loading && (
             <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-gray-600"></div>
-              <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">Loading documents...</p>
+              <span className="material-symbols-outlined animate-spin inline-block text-[var(--text)] text-2xl">progress_activity</span>
+              <p className="mt-4 text-sm text-[var(--text-muted)]">Loading documents...</p>
             </div>
           )}
 
           {!selectedDb || !selectedCollection ? (
             <div className="text-center py-16">
-              <div className="w-16 h-16 mx-auto mb-6 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 1.79 4 4 4h8c2.21 0 4-1.79 4-4V7M4 7c0-2.21 1.79-4 4-4h8c2.21 0 4 1.79 4 4M4 7h16" />
-                </svg>
+              <div className="w-16 h-16 mx-auto mb-6 bg-[var(--surface)] rounded-lg flex items-center justify-center">
+                <span className="material-symbols-outlined text-[var(--text-muted)] text-2xl">folder_open</span>
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              <h2 className="text-xl font-semibold text-[var(--text)] mb-2">
                 Welcome to MongoDB Admin
               </h2>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-[var(--text-muted)]">
                 Select a database and collection to get started
               </p>
             </div>
@@ -572,138 +449,81 @@ const Dashboard = () => {
             <div>
               {/* Header with pagination */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                    {selectedDb}.{selectedCollection}
-                  </h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {totalDocuments} total documents • Page {currentPage} of {totalPages}
-                  </p>
-                </div>
-
-                {totalPages > 1 && (
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses.secondary}`}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    
-                    <span className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {currentPage} / {totalPages}
-                    </span>
-                    
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses.secondary}`}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
+              <div>
+                <h2 className="text-xl font-semibold text-[var(--text)] mb-1">
+                  {selectedDb}.{selectedCollection}
+                </h2>
+                <p className="text-sm text-[var(--text-muted)]">
+                  {totalDocuments} total documents • Page {currentPage} of {totalPages}
+                </p>
+                {isConnected && fieldNames.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs font-medium text-[var(--text)] mb-1">Fields in documents:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {fieldNames.map((name) => (
+                        <span
+                          key={name}
+                          className={`px-2 py-1 text-xs rounded border ${darkMode ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-gray-100 border-gray-300 text-gray-700"}`}
+                        >
+                          {name}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Documents Grid */}
-              <div className="space-y-4">
-                {documents.map((doc) => (
-                  <div
-                    key={doc._id}
-                    className={`p-4 border rounded-lg transition-colors duration-200 hover:border-gray-300 dark:hover:border-gray-600 ${cardClasses}`}
-                  >
-                    <div className="flex flex-col sm:flex-row justify-between items-start mb-3 space-y-3 sm:space-y-0">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-6 h-6 bg-gray-600 rounded flex items-center justify-center">
-                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <code className="text-xs font-mono px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded">
-                          ID: {doc._id}
-                        </code>
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => openEditModal(doc)}
-                          className={`px-3 py-1 rounded text-xs font-medium transition-colors duration-200 ${buttonClasses.secondary}`}
-                        >
-                          <span className="flex items-center space-x-1">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            <span>Edit</span>
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => deleteDocument(doc._id)}
-                          className={`px-3 py-1 rounded text-xs font-medium transition-colors duration-200 ${buttonClasses.danger}`}
-                        >
-                          <span className="flex items-center space-x-1">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            <span>Delete</span>
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <pre className={`text-xs overflow-x-auto p-3 rounded border ${
-                      darkMode 
-                        ? "bg-gray-900 border-gray-700 text-gray-300" 
-                        : "bg-gray-50 border-gray-200 text-gray-700"
-                    }`}>
-                      {JSON.stringify(doc, null, 2)}
-                    </pre>
-                  </div>
-                ))}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  buttonClasses={buttonClasses}
+                  onPageChange={handlePageChange}
+                  variant="compact"
+                />
               </div>
+
+              {/* Missing resource component or documents grid */}
+              {(!isConnected && (error === "Database not found" || error === "Collection not found")) ? (
+                <MissingResource
+                  error={error}
+                  selectedDb={selectedDb}
+                  selectedCollection={selectedCollection}
+                  cardClasses={cardClasses}
+                  buttonClasses={buttonClasses}
+                  onCreateClick={() => {
+                    const msg = error === "Database not found"
+                      ? `La base de datos '${selectedDb}' no existe. Créala junto con '${selectedCollection}'.`
+                      : error === "Collection not found"
+                      ? `La colección '${selectedCollection}' no existe en '${selectedDb}'. Créala ahora.`
+                      : "Crea una nueva base de datos y/o colección.";
+                    setCreateModalMessage(msg);
+                    setNewDbName(selectedDb);
+                    setNewCollectionName(selectedCollection);
+                    setShowCreateDbModal(true);
+                  }}
+                />
+              ) : (
+                <DocumentGrid
+                  documents={documents}
+                  darkMode={darkMode}
+                  cardClasses={cardClasses}
+                  buttonClasses={buttonClasses}
+                  onEdit={openEditModal}
+                  onDelete={(id: string) => deleteDocument(id)}
+                />
+              )}
 
               {/* Bottom Pagination */}
               {totalPages > 1 && (
                 <div className="flex justify-center mt-8">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handlePageChange(1)}
-                      disabled={currentPage === 1}
-                      className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses.secondary}`}
-                    >
-                      First
-                    </button>
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses.secondary}`}
-                    >
-                      Previous
-                    </button>
-                    
-                    <span className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                      {currentPage} of {totalPages}
-                    </span>
-                    
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses.secondary}`}
-                    >
-                      Next
-                    </button>
-                    <button
-                      onClick={() => handlePageChange(totalPages)}
-                      disabled={currentPage === totalPages}
-                      className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses.secondary}`}
-                    >
-                      Last
-                    </button>
-                  </div>
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    buttonClasses={buttonClasses}
+                    onPageChange={handlePageChange}
+                    variant="full"
+                    darkMode={darkMode}
+                  />
                 </div>
               )}
             </div>
@@ -714,305 +534,64 @@ const Dashboard = () => {
       {/* Modals */}
       {/* Search Modal */}
       {showSearchModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className={`w-full max-w-2xl p-6 rounded-lg border ${cardClasses}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center space-x-2">
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <span>Search Documents</span>
-              </h3>
-              <button
-                onClick={() => setShowSearchModal(false)}
-                className={`p-2 rounded-lg transition-colors duration-200 ${
-                  darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">MongoDB Query (JSON):</label>
-                <textarea
-                  className={`w-full p-3 border rounded-lg h-32 font-mono text-sm transition-colors duration-200 ${inputClasses}`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder='{"field": "value"}'
-                />
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={searchDocuments}
-                  disabled={loading}
-                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 ${buttonClasses.primary}`}
-                >
-                  <span className="flex items-center justify-center space-x-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <span>Search</span>
-                  </span>
-                </button>
-                <button
-                  onClick={() => setShowSearchModal(false)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${buttonClasses.secondary}`}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <SearchModal
+          darkMode={darkMode}
+          cardClasses={cardClasses}
+          inputClasses={inputClasses}
+          buttonClasses={buttonClasses}
+          searchQuery={searchQuery}
+          onChangeQuery={setSearchQuery}
+          loading={loading}
+          onSearch={searchDocuments}
+          onClose={() => setShowSearchModal(false)}
+        />
       )}
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className={`w-full max-w-2xl p-6 rounded-lg border ${cardClasses}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center space-x-2">
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                <span>Create Document</span>
-              </h3>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className={`p-2 rounded-lg transition-colors duration-200 ${
-                  darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Document JSON:</label>
-                <textarea
-                  className={`w-full p-3 border rounded-lg h-40 font-mono text-sm transition-colors duration-200 ${inputClasses}`}
-                  value={newDocument}
-                  onChange={(e) => setNewDocument(e.target.value)}
-                  placeholder='{"name": "example", "value": 123}'
-                />
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={createDocument}
-                  disabled={loading}
-                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 ${buttonClasses.primary}`}
-                >
-                  <span className="flex items-center justify-center space-x-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    <span>Create</span>
-                  </span>
-                </button>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${buttonClasses.secondary}`}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CreateModal
+          cardClasses={cardClasses}
+          inputClasses={inputClasses}
+          buttonClasses={buttonClasses}
+          newDocJson={newDocJson}
+          onChangeNewDoc={setNewDocJson}
+          onCreate={createDocument}
+          onClose={() => setShowCreateModal(false)}
+        />
       )}
 
-      {/* Create Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className={`w-full max-w-2xl p-6 rounded-lg border ${cardClasses}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold flex items-center space-x-2">
-                <svg className="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                <span>Create New Document</span>
-              </h3>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Document JSON:</label>
-                <textarea
-                  className={`w-full p-3 border rounded-xl h-40 font-mono text-sm transition-all duration-200 ${inputClasses}`}
-                  value={newDocJson}
-                  onChange={(e) => setNewDocJson(e.target.value)}
-                  placeholder='{"key": "value"}'
-                />
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={createDocument}
-                  className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${buttonClasses.purple}`}
-                >
-                  <span className="flex items-center justify-center space-x-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    <span>Create Document</span>
-                  </span>
-                </button>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className={`px-4 py-3 rounded-xl font-medium transition-all duration-200 ${buttonClasses.secondary}`}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Duplicate Create Modal removed in favor of component above */}
 
       {/* Edit Modal */}
-      {showEditModal && editingDoc && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className={`w-full max-w-2xl p-6 rounded-lg border ${cardClasses}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center space-x-2">
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <span>Edit Document</span>
-              </h3>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className={`p-2 rounded-lg transition-colors duration-200 ${
-                  darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                  Document ID: <code className="text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-xs">{editingDoc._id}</code>
-                </label>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Document JSON:</label>
-                <textarea
-                  className={`w-full p-3 border rounded-lg h-40 font-mono text-sm transition-colors duration-200 ${inputClasses}`}
-                  value={newDocument}
-                  onChange={(e) => setNewDocument(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={updateDocument}
-                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${buttonClasses.primary}`}
-                >
-                  <span className="flex items-center justify-center space-x-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Update Document</span>
-                  </span>
-                </button>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${buttonClasses.secondary}`}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {showEditModal && (
+        <EditModal
+          darkMode={darkMode}
+          cardClasses={cardClasses}
+          inputClasses={inputClasses}
+          buttonClasses={buttonClasses}
+          editingDoc={editingDoc}
+          newDocJson={newDocJson}
+          onChangeNewDoc={setNewDocJson}
+          onUpdate={updateDocument}
+          onClose={() => setShowEditModal(false)}
+        />
       )}
 
       {/* Create DB/Collection Modal */}
       {showCreateDbModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className={`w-full max-w-md p-6 rounded-lg border ${cardClasses}`}>
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-                <svg className="w-8 h-8 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Create Database/Collection</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {createModalMessage}
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Database Name:</label>
-                <input
-                  type="text"
-                  className={`w-full p-3 border rounded-lg transition-colors duration-200 ${inputClasses}`}
-                  value={newDbName}
-                  onChange={(e) => setNewDbName(e.target.value)}
-                  placeholder="Enter database name"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Collection Name:</label>
-                <input
-                  type="text"
-                  className={`w-full p-3 border rounded-lg transition-colors duration-200 ${inputClasses}`}
-                  value={newCollectionName}
-                  onChange={(e) => setNewCollectionName(e.target.value)}
-                  placeholder="Enter collection name"
-                />
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={createDbAndCollection}
-                  disabled={loading}
-                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 ${buttonClasses.primary}`}
-                >
-                  <span className="flex items-center justify-center space-x-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9" />
-                    </svg>
-                    <span>Create</span>
-                  </span>
-                </button>
-                <button
-                  onClick={() => setShowCreateDbModal(false)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${buttonClasses.secondary}`}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CreateDbModal
+          cardClasses={cardClasses}
+          inputClasses={inputClasses}
+          buttonClasses={buttonClasses}
+          message={createModalMessage}
+          newDbName={newDbName}
+          newCollectionName={newCollectionName}
+          loading={loading}
+          onChangeDbName={setNewDbName}
+          onChangeCollectionName={setNewCollectionName}
+          onCreate={createDbAndCollection}
+          onClose={() => setShowCreateDbModal(false)}
+        />
       )}
       </div>
     </div>
