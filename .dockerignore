@@ -1,0 +1,9 @@
+node_modules
+.next
+pnpm-lock.yaml
+*.log
+.git
+.gitignore
+.env*
+test-connection
+mongo-test.ts
