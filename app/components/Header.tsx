@@ -18,6 +18,7 @@ interface HeaderProps {
   disableReasonCreateDb?: string;
   currentUserName?: string;
   currentUserRole?: "admin" | "user";
+  onLogoutRedirectUrl?: string;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -36,6 +37,7 @@ const Header: React.FC<HeaderProps> = ({
   disableReasonCreateDb,
   currentUserName,
   currentUserRole,
+  onLogoutRedirectUrl,
 }) => {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [displayUserName, setDisplayUserName] = useState<string | undefined>(currentUserName);
@@ -120,7 +122,7 @@ const Header: React.FC<HeaderProps> = ({
           </button>
 
           {actionsOpen && (
-            <div className={`absolute right-0 top-12 min-w-[220px] p-2 rounded-lg border shadow-lg ${cardClasses}`} role="menu">
+            <div className={`absolute right-0 top-12 min-w-[220px] p-2 rounded-lg border shadow-lg z-50 ${cardClasses}`} role="menu">
               <button
                 onClick={() => {
                   if (!isConnected || !canCreateDocument) return;
@@ -153,6 +155,8 @@ const Header: React.FC<HeaderProps> = ({
                   <span>Create DB/Collection</span>
                 </span>
               </button>
+              <div className="my-2 border-t border-[var(--border)]" />
+
             </div>
           )}
 
@@ -164,6 +168,25 @@ const Header: React.FC<HeaderProps> = ({
             <span className="material-symbols-outlined text-[var(--text)] text-base">
               {darkMode ? 'light_mode' : 'dark_mode'}
             </span>
+          </button>
+
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+                if (res.ok) {
+                  const target = onLogoutRedirectUrl || '/auth/sing-in';
+                  window.location.href = target;
+                }
+              } catch (e) {
+                // Silenciar errores en UI
+              }
+            }}
+            className={`group p-2 rounded-lg ${buttonClasses.secondary} text-sm hover:bg-[var(--surface)] transition`}
+            title="Logout"
+            aria-label="Logout"
+          >
+            <span className="material-symbols-outlined text-[var(--text-muted)] group-hover:text-red-600 text-base">logout</span>
           </button>
         </div>
       </div>

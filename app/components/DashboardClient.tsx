@@ -10,6 +10,7 @@ import CreateModal from "./CreateModal";
 import EditModal from "./EditModal";
 import CreateDbModal from "./CreateDbModal";
 import MissingResource from "./MissingResource";
+import DbExplorer from "./DbExplorer";
 
 interface Document {
   _id: string;
@@ -77,12 +78,14 @@ const Dashboard = () => {
   // Función apiCall reutilizable para otras operaciones
   const apiCall = useCallback(
     async (endpoint: string, options: RequestInit = {}) => {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+        ...(API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {}),
+        ...options.headers,
+      };
       const response = await fetch(endpoint, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${API_TOKEN}`,
-          ...options.headers,
-        },
+        headers,
+        credentials: "include",
         ...options,
       });
 
@@ -166,8 +169,9 @@ const Dashboard = () => {
         `/api/${db}/${collection}?page=${page}&limit=${limit}`,
         {
           headers: {
-            Authorization: `Bearer ${API_TOKEN}`,
+            ...(API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {}),
           },
+          credentials: "include",
         }
       );
 
@@ -255,6 +259,20 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const goBackToDatabases = () => {
+    setSelectedDb("");
+    setSelectedCollection("");
+    setIsConnected(false);
+    setConnectedDb("");
+    setConnectedCollection("");
+    setDocuments([]);
+    setFieldNames([]);
+    setError("");
+    setCurrentPage(1);
+    setTotalPages(1);
+    setTotalDocuments(0);
   };
 
   // Flags de permisos
@@ -368,8 +386,9 @@ const Dashboard = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${API_TOKEN}`,
+          ...(API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {}),
         },
+        credentials: "include",
         body: JSON.stringify({
           db: selectedDb,
           collection: selectedCollection,
@@ -502,19 +521,28 @@ const Dashboard = () => {
           )}
 
           {!selectedDb || !selectedCollection ? (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 mx-auto mb-6 bg-[var(--surface)] rounded-lg flex items-center justify-center">
-                <span className="material-symbols-outlined text-[var(--text-muted)] text-2xl">folder_open</span>
-              </div>
-              <h2 className="text-xl font-semibold text-[var(--text)] mb-2">
-                Welcome to MongoDB Admin
-              </h2>
-              <p className="text-[var(--text-muted)]">
-                Select a database and collection to get started
-              </p>
-            </div>
+            <DbExplorer
+              onSelectDb={(db) => {
+                handleDbChange(db);
+              }}
+              onViewCollection={(db, col) => {
+                handleDbChange(db);
+                handleCollectionChange(col);
+                // Conectar y cargar documentos como si se seleccionara manualmente
+                loadDocuments(db, col, 1);
+              }}
+            />
           ) : (
             <div>
+              <div className="mb-4">
+                <button
+                  className={`px-2 py-1 rounded-md text-xs ${buttonClasses.secondary}`}
+                  onClick={goBackToDatabases}
+                >
+                  <span className="material-symbols-outlined text-[var(--text)] text-base align-middle">arrow_back</span>
+                  <span className="ml-1 align-middle">Volver a bases</span>
+                </button>
+              </div>
               {/* Header with pagination */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
               <div>
