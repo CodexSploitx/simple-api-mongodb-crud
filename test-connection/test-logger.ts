@@ -1,4 +1,4 @@
-import { LogLevel, LoggerOptions } from "./types.js";
+import { LogLevel, LoggerOptions } from "./types.ts";
 
 /**
  * Sistema de logging avanzado para tests

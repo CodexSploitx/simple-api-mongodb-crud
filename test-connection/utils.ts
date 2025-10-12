@@ -1,4 +1,4 @@
-import { ApiTestDocument } from "./types.js";
+import { ApiTestDocument } from "./types.ts";
 
 /**
  * Utilidades auxiliares para los tests

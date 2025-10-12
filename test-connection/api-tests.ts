@@ -1,6 +1,6 @@
-import { config } from "./test-config.js";
-import { TestLogger } from "./test-logger.js";
-import { TestUtils } from "./utils.js";
+import { config } from "./test-config.ts";
+import { TestLogger } from "./test-logger.ts";
+import { TestUtils } from "./utils.ts";
 import { 
   TestResult, 
   TestSuite, 
@@ -11,7 +11,7 @@ import {
   DeleteResponse, 
   FindResponse,
   ApiTestDocument 
-} from "./types.js";
+} from "./types.ts";
 
 /**
  * Suite de tests para API endpoints

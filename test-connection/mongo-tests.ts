@@ -4,11 +4,11 @@ import {
   databaseExists,
   collectionExists,
   createDatabaseAndCollection,
-} from "../lib/mongo.js";
-import { config } from "./test-config.js";
-import { logger } from "./test-logger.js";
-import { TestUtils } from "./utils.js";
-import { TestResult, TestSuite, MongoTestContext, TestError } from "./types.js";
+} from "../lib/mongo.ts";
+import { config } from "./test-config.ts";
+import { logger } from "./test-logger.ts";
+import { TestUtils } from "./utils.ts";
+import { TestResult, TestSuite, MongoTestContext, TestError } from "./types.ts";
 
 /**
  * Test suite for MongoDB

@@ -8,7 +8,15 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "mongotest": "npx ts-node mongo-test.ts"
+    "mongotest": "npx ts-node mongo-test.ts",
+    "test": "npx tsx test-connection/test-runner.ts all",
+    "test:all": "npx tsx test-connection/test-runner.ts all",
+    "test:mongo": "npx tsx test-connection/test-runner.ts mongo",
+    "test:api": "npx tsx test-connection/test-runner.ts api",
+    "test:export": "npx tsx test-connection/test-runner.ts all --export=test-results.json",
+    "test:debug": "cross-env LOG_LEVEL=DEBUG npx tsx test-connection/test-runner.ts",
+    "test:watch": "npx nodemon --exec \"npm run test\" --ext ts,js,json",
+    "test:with-server": "concurrently -k --success first \"npm run dev\" \"wait-on http://localhost:3000 && npm run test:all\""
   },
   "dependencies": {
     "dotenv": "17.2.1",
@@ -24,9 +32,15 @@
     "@types/node": "20",
     "@types/react": "19",
     "@types/react-dom": "19",
+    "cross-env": "7",
     "eslint": "9",
     "eslint-config-next": "15.5.0",
+    "nodemon": "3",
     "tailwindcss": "4",
+    "concurrently": "^9.0.0",
+    "wait-on": "^7.0.1",
+    "start-server-and-test": "^2.0.1",
+    "tsx": "4",
     "typescript": "5"
   }
 }

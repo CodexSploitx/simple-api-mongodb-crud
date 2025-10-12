@@ -1,9 +1,9 @@
-import { config } from "./test-config.js";
-import { logger } from "./test-logger.js";
-import { MongoTests } from "./mongo-tests.js";
-import { ApiTests } from "./api-tests.js";
-import { TestUtils } from "./utils.js";
-import { TestSuite, TestSummary } from "./types.js";
+import { config } from "./test-config.ts";
+import { logger } from "./test-logger.ts";
+import { MongoTests } from "./mongo-tests.ts";
+import { ApiTests } from "./api-tests.ts";
+import { TestUtils } from "./utils.ts";
+import { TestSuite, TestSummary } from "./types.ts";
 import * as fs from 'fs';
 
 /**

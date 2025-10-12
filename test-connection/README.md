@@ -30,7 +30,7 @@ test-connection/
 
 ### Environment Variables
 
-Create a `.env.local` file in the `test-connection` folder with the following variables:
+Use the root project `.env` or `.env.local` to configure the following variables:
 
 ```env
 # MongoDB Configuration
@@ -47,11 +47,23 @@ API_TIMEOUT=10000
 LOG_LEVEL=INFO
 ```
 
-### Dependencies Installation
+### Execution from Root
 
 ```bash
-npm install mongodb
-# or if you use other specific drivers/libraries
+# Run all tests
+npm run test:all
+
+# MongoDB tests only
+npm run test:mongo
+
+# API tests only
+npm run test:api
+
+# Export results to JSON
+npm run test:export
+
+# Run with debug logs
+npm run test:debug
 ```
 
 ## 🏃‍♂️ Usage
@@ -91,8 +103,8 @@ npm run test:watch
 ### Export Results
 
 ```bash
-# Export results to JSON
-npx tsx test-connection/test-runner.ts all --export=results.json
+# Export results to JSON (from root)
+npm run test:export
 ```
 
 ### Programmatic Usage

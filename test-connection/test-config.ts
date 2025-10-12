@@ -1,8 +1,9 @@
 import dotenv from "dotenv";
-import { TestConfig, LogLevel, TestError } from "./types.js";
+import { TestConfig, LogLevel, TestError } from "./types.ts";
 
-// Cargar variables de entorno
+// Cargar variables de entorno desde el root: primero .env.local, luego .env
 dotenv.config({ path: ".env.local" });
+dotenv.config();
 
 /**
  * Configuración centralizada para los tests
@@ -36,8 +37,8 @@ export class Config {
         timeout: parseInt(process.env.MONGODB_TIMEOUT || "10000", 10)
       },
       api: {
-        baseUrl: process.env.BASE_URL || "http://localhost:3000",
-        token: process.env.API_TOKEN || "",
+        baseUrl: process.env.BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
+        token: process.env.API_TOKEN || process.env.NEXT_PUBLIC_API_TOKEN || "",
         timeout: parseInt(process.env.API_TIMEOUT || "10000")
       },
       logging: {
@@ -115,7 +116,8 @@ export class Config {
    * Obtiene las variables de entorno requeridas
    */
   public getRequiredEnvVars(): string[] {
-    return ["MONGODB_URI", "API_TOKEN"];
+    // Requerimos solo la URI de Mongo; el token puede venir de NEXT_PUBLIC_API_TOKEN o omitirse para tests de Mongo
+    return ["MONGODB_URI"];
   }
 
   /**
