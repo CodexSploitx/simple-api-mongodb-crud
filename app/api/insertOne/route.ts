@@ -27,8 +27,8 @@ const insertOneRequestSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     // Validate authentication
-    const authResult = authToken(req);
-    if (authResult instanceof NextResponse) {
+  const authResult = await authToken(req, "register");
+    if (authResult !== null) {
       return authResult;
     }
 

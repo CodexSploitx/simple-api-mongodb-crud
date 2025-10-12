@@ -38,7 +38,7 @@ export async function GET(
     }
 
     // 2. Verificar autenticación
-    const authResult = authToken(req);
+  const authResult = await authToken(req, "find");
     if (authResult !== null) {
       return authResult as NextResponse<ErrorResponse>;
     }

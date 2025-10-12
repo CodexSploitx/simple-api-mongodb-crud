@@ -6,9 +6,9 @@ import type { DeleteOneRequest, ApiResponse, DeleteOneResponse } from '../../../
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
     // Autenticación
-    const authError = authToken(request);
-    if (authError) {
-      return NextResponse.json(authError, { status: 401 });
+    const authResult = await authToken(request, "delete");
+    if (authResult !== null) {
+      return authResult;
     }
 
     // Parsear el cuerpo de la solicitud

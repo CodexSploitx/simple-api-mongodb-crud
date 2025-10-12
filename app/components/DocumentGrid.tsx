@@ -14,6 +14,10 @@ interface DocumentGridProps {
   buttonClasses: ButtonClasses;
   onEdit: (doc: DocumentType) => void;
   onDelete: (id: string) => void;
+  canUpdate?: boolean;
+  canDelete?: boolean;
+  disableReasonUpdate?: string;
+  disableReasonDelete?: string;
 }
 
 const DocumentGrid: React.FC<DocumentGridProps> = ({
@@ -23,6 +27,10 @@ const DocumentGrid: React.FC<DocumentGridProps> = ({
   buttonClasses,
   onEdit,
   onDelete,
+  canUpdate = true,
+  canDelete = true,
+  disableReasonUpdate,
+  disableReasonDelete,
 }) => {
   return (
     <div className="space-y-4">
@@ -42,8 +50,10 @@ const DocumentGrid: React.FC<DocumentGridProps> = ({
             </div>
             <div className="flex space-x-2">
               <button
-                onClick={() => onEdit(doc)}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors duration-200 ${buttonClasses.secondary}`}
+                onClick={() => { if (!canUpdate) return; onEdit(doc); }}
+                disabled={!canUpdate}
+                title={!canUpdate ? (disableReasonUpdate || "You don't have permission to update documents") : undefined}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses.secondary}`}
               >
                 <span className="flex items-center space-x-1">
                   <span className="material-symbols-outlined text-[var(--text)] text-[14px] leading-none">edit</span>
@@ -51,8 +61,10 @@ const DocumentGrid: React.FC<DocumentGridProps> = ({
                 </span>
               </button>
               <button
-                onClick={() => onDelete(String(doc._id))}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors duration-200 ${buttonClasses.danger}`}
+                onClick={() => { if (!canDelete) return; onDelete(String(doc._id)); }}
+                disabled={!canDelete}
+                title={!canDelete ? (disableReasonDelete || "You don't have permission to delete documents") : undefined}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses.danger}`}
               >
                 <span className="flex items-center space-x-1">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

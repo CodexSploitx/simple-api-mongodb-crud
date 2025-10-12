@@ -9,6 +9,8 @@ interface MissingResourceProps {
   cardClasses: string;
   buttonClasses: ButtonClasses;
   onCreateClick: () => void;
+  canCreateDbCollection?: boolean;
+  disableReasonCreateDb?: string;
 }
 
 const MissingResource: React.FC<MissingResourceProps> = ({
@@ -18,6 +20,8 @@ const MissingResource: React.FC<MissingResourceProps> = ({
   cardClasses,
   buttonClasses,
   onCreateClick,
+  canCreateDbCollection = true,
+  disableReasonCreateDb,
 }) => {
   const isDbMissing = error === "Database not found";
   const isCollectionMissing = error === "Collection not found";
@@ -52,8 +56,10 @@ const MissingResource: React.FC<MissingResourceProps> = ({
         </p>
         <div className="flex items-center justify-center gap-3">
           <button
-            onClick={onCreateClick}
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${buttonClasses.secondary}`}
+            onClick={() => { if (!canCreateDbCollection) return; onCreateClick(); }}
+            disabled={!canCreateDbCollection}
+            title={!canCreateDbCollection ? (disableReasonCreateDb || "Only admins can create databases/collections") : undefined}
+            className={`px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses.secondary}`}
           >
             <span className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[var(--text)] text-base">add_circle</span>

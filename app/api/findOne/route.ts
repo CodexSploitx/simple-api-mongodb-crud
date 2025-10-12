@@ -14,7 +14,7 @@ export async function POST(
     if (methodValidation) return methodValidation;
 
     // Autenticación
-    const authResult = await authToken(request);
+    const authResult = await authToken(request, "find");
     if (authResult !== null) {
       return authResult;
     }

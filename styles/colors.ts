@@ -158,6 +158,15 @@ export const getUIClasses = () => {
       'transition-colors',
       'duration-200',
     ].join(' '),
+    warning: [
+      'bg-[var(--warning)]',
+      'hover:bg-amber-400/90',
+      'text-black',
+      'border',
+      'border-[var(--warning)]',
+      'transition-colors',
+      'duration-200',
+    ].join(' '),
     // Map purple variant to accent for a consistent palette
     purple: [
       'bg-[var(--accent)]',

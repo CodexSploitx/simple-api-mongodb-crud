@@ -3,5 +3,6 @@ export interface ButtonClasses {
   secondary: string;
   danger: string;
   success: string;
+  warning: string;
   purple: string;
 }

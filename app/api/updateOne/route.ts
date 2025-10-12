@@ -6,8 +6,8 @@ import type { UpdateOneRequest, ApiResponse, UpdateOneResponse } from "../../../
 export async function PUT(request: NextRequest): Promise<NextResponse> {
   try {
     // Autenticación
-    const authResult = authToken(request);
-    if (authResult) {
+    const authResult = await authToken(request, "update");
+    if (authResult !== null) {
       return authResult; // Retorna el error de autenticación
     }
 

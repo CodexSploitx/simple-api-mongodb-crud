@@ -14,6 +14,8 @@ interface CreateDbModalProps {
   onChangeCollectionName: (value: string) => void;
   onCreate: () => void;
   onClose: () => void;
+  canCreateDbCollection?: boolean;
+  disableReasonCreateDb?: string;
 }
 
 const CreateDbModal: React.FC<CreateDbModalProps> = ({
@@ -28,6 +30,8 @@ const CreateDbModal: React.FC<CreateDbModalProps> = ({
   onChangeCollectionName,
   onCreate,
   onClose,
+  canCreateDbCollection = true,
+  disableReasonCreateDb,
 }) => {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -65,9 +69,10 @@ const CreateDbModal: React.FC<CreateDbModalProps> = ({
 
           <div className="flex space-x-3">
             <button
-              onClick={onCreate}
-              disabled={loading}
-              className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 ${buttonClasses.primary}`}
+              onClick={() => { if (!canCreateDbCollection) return; onCreate(); }}
+              disabled={loading || !canCreateDbCollection}
+              title={!canCreateDbCollection ? (disableReasonCreateDb || "Only admins can create databases/collections") : undefined}
+              className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses.primary}`}
             >
               <span className="flex items-center justify-center space-x-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
