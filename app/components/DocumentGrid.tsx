@@ -18,6 +18,7 @@ interface DocumentGridProps {
   canDelete?: boolean;
   disableReasonUpdate?: string;
   disableReasonDelete?: string;
+  onViewFull?: (doc: DocumentType) => void;
 }
 
 const DocumentGrid: React.FC<DocumentGridProps> = ({
@@ -31,13 +32,43 @@ const DocumentGrid: React.FC<DocumentGridProps> = ({
   canDelete = true,
   disableReasonUpdate,
   disableReasonDelete,
+  onViewFull,
 }) => {
+  const MAX_CHARS = 800;
+  const MAX_LINES = 30;
+  const MAX_LINE_LENGTH = 160;
+
+  const makePreview = (doc: DocumentType) => {
+    const full = JSON.stringify(doc, null, 2);
+    const lines = full.split("\n");
+    let truncated = false;
+
+    const croppedLines = lines.slice(0, MAX_LINES).map((l) => {
+      if (l.length > MAX_LINE_LENGTH) {
+        truncated = true;
+        return l.slice(0, MAX_LINE_LENGTH) + "…";
+      }
+      return l;
+    });
+
+    let preview = croppedLines.join("\n");
+    if (full.length > MAX_CHARS) {
+      truncated = true;
+      preview = preview.slice(0, MAX_CHARS) + "\n…";
+    }
+    if (lines.length > MAX_LINES) {
+      truncated = true;
+      preview += "\n…";
+    }
+    return { preview, truncated, full };
+  };
+
   return (
     <div className="space-y-4">
       {documents.map((doc) => (
         <div
           key={doc._id as string}
-          className={`p-4 border rounded-lg transition-colors duration-200 hover:border-gray-300 dark:hover:border-gray-600 ${cardClasses}`}
+          className={`p-4 border rounded-lg transition-colors duration-200 hover:border-gray-300 dark:hover:border-gray-600 ${cardClasses} relative`}
         >
           <div className="flex flex-col sm:flex-row justify-between items-start mb-3 space-y-3 sm:space-y-0">
             <div className="flex items-center space-x-3">
@@ -76,13 +107,29 @@ const DocumentGrid: React.FC<DocumentGridProps> = ({
             </div>
           </div>
 
-          <pre
-            className={`text-xs overflow-x-auto p-3 rounded border ${
-              darkMode ? "bg-gray-900 border-gray-700 text-gray-300" : "bg-gray-50 border-gray-200 text-gray-700"
-            }`}
-          >
-            {JSON.stringify(doc, null, 2)}
-          </pre>
+          {(() => {
+            const { preview, truncated } = makePreview(doc);
+            return (
+              <div>
+                <pre
+                  className={`text-xs p-3 rounded border ${
+                    darkMode ? "bg-gray-900 border-gray-700 text-gray-300" : "bg-gray-50 border-gray-200 text-gray-700"
+                  } max-h-40 overflow-hidden`}
+                >
+                  {preview}
+                </pre>
+                <div className="absolute bottom-3 right-3">
+                  <button
+                    onClick={() => onViewFull && onViewFull(doc)}
+                    className={`px-2 py-1 rounded text-[10px] ${buttonClasses.secondary}`}
+                    title="View the full document"
+                  >
+                    View Full Content
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       ))}
     </div>

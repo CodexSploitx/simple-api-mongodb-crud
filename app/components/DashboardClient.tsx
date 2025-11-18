@@ -11,6 +11,7 @@ import EditModal from "./EditModal";
 import CreateDbModal from "./CreateDbModal";
 import MissingResource from "./MissingResource";
 import DbExplorer from "./DbExplorer";
+import DocumentViewModal from "./DocumentViewModal";
 
 interface Document {
   _id: string;
@@ -47,6 +48,8 @@ const Dashboard = () => {
   const [newCollectionName, setNewCollectionName] = useState("");
   const [documentsPerPage] = useState(10);
   const [fieldNames, setFieldNames] = useState<string[]>([]);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewDoc, setViewDoc] = useState<Document | null>(null);
   // Estado de usuario actual y permisos
   const [currentUser, setCurrentUser] = useState<{ _id: string; username?: string; role?: "admin" | "user"; permissions?: Record<string, boolean> } | null>(null);
   const [userLoading, setUserLoading] = useState(false);
@@ -616,6 +619,7 @@ const Dashboard = () => {
                   canDelete={canDelete}
                   disableReasonUpdate={canUpdate ? undefined : "You don't have permission to update documents"}
                   disableReasonDelete={canDelete ? undefined : "You don't have permission to delete documents"}
+                  onViewFull={(doc) => { setViewDoc(doc as Document); setShowViewModal(true); }}
                 />
               )}
 
@@ -680,6 +684,16 @@ const Dashboard = () => {
           onChangeNewDoc={setNewDocJson}
           onUpdate={updateDocument}
           onClose={() => setShowEditModal(false)}
+        />
+      )}
+
+      {showViewModal && (
+        <DocumentViewModal
+          darkMode={darkMode}
+          cardClasses={cardClasses}
+          buttonClasses={buttonClasses}
+          doc={viewDoc}
+          onClose={() => { setShowViewModal(false); setViewDoc(null); }}
         />
       )}
 

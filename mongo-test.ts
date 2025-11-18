@@ -13,7 +13,18 @@ dotenv.config({ path: ".env.local" });
 // Test configuration
 const TEST_DB = "test_database";
 const TEST_COLLECTION = "test_collection";
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017";
+function resolveMongoUri(): string {
+  const direct = process.env.MONGODB_URI?.trim();
+  if (direct) return direct;
+  const host = process.env.MONGODB_HOST || "localhost";
+  const port = process.env.PORT_MONGODB || "27017";
+  const user = process.env.MONGODB_USERNAME || process.env.MONGODB_USER || "";
+  const pass = process.env.MONGODB_PASSWORD || process.env.MONGODB_PASS || "";
+  const auth = user && pass ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@` : "";
+  return `mongodb://${auth}${host}:${port}`;
+}
+
+const MONGODB_URI = resolveMongoUri();
 const API_TOKEN = process.env.API_TOKEN || "";
 const BASE_URL = "http://localhost:3000";
 
@@ -436,24 +447,34 @@ async function cleanupTestData() {
 function validateEnvironment() {
   logHeader("ENVIRONMENT VARIABLES VALIDATION");
 
-  const requiredVars = ["MONGODB_URI", "API_TOKEN"];
-  const missingVars = [];
+  const apiTokenOk = !!process.env.API_TOKEN;
+  if (apiTokenOk) {
+    logSuccess("Environment variable found: API_TOKEN");
+  } else {
+    logWarning("API_TOKEN not set; proceeding with test token");
+  }
 
-  for (const varName of requiredVars) {
-    if (!process.env[varName]) {
-      missingVars.push(varName);
-      logError(`Missing environment variable: ${varName}`);
+  const hasDirectUri = !!(process.env.MONGODB_URI && process.env.MONGODB_URI.trim());
+  const hasDynamicPort = !!process.env.PORT_MONGODB;
+  const hasHost = !!process.env.MONGODB_HOST || true; // default host fallback
+
+  if (hasDirectUri) {
+    logSuccess("Environment variable found: MONGODB_URI");
+    return true;
+  }
+
+  if (hasDynamicPort) {
+    logSuccess("Environment variable found: PORT_MONGODB");
+    if (process.env.MONGODB_HOST) {
+      logSuccess("Environment variable found: MONGODB_HOST");
     } else {
-      logSuccess(`Environment variable found: ${varName}`);
+      logInfo("Using default host 'localhost'");
     }
+    return true;
   }
 
-  if (missingVars.length > 0) {
-    logError(`Missing ${missingVars.length} required environment variables`);
-    return false;
-  }
-
-  return true;
+  logError("Missing MongoDB configuration: provide MONGODB_URI or PORT_MONGODB");
+  return false;
 }
 
 // Run tests if file is executed directly

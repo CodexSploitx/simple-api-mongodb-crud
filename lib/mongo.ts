@@ -2,10 +2,21 @@ import { MongoClient, Db, Collection } from "mongodb";
 
 let client: MongoClient;
 
-const uri: string = process.env.MONGODB_URI || "mongodb://localhost:27017";
+function resolveMongoUri(): string {
+  if (process.env.MONGODB_URI && process.env.MONGODB_URI.trim().length > 0) {
+    return process.env.MONGODB_URI;
+  }
+  const host = process.env.MONGODB_HOST || "localhost";
+  const port = process.env.PORT_MONGODB || "27017";
+  const user = process.env.MONGODB_USERNAME || process.env.MONGODB_USER || "";
+  const pass = process.env.MONGODB_PASSWORD || process.env.MONGODB_PASS || "";
+  const auth = user && pass ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@` : "";
+  return `mongodb://${auth}${host}:${port}`;
+}
 
 export async function connectToDatabase(dbName: string): Promise<Db> {
   if (!client) {
+    const uri = resolveMongoUri();
     client = new MongoClient(uri);
     await client.connect();
     console.log("✅ Connected to MongoDB");
@@ -62,6 +73,7 @@ export function validateDbAndCollectionNames(db: string, collection: string): vo
 export async function databaseExists(dbName: string): Promise<boolean> {
   try {
     if (!client) {
+      const uri = resolveMongoUri();
       client = new MongoClient(uri);
       await client.connect();
     }

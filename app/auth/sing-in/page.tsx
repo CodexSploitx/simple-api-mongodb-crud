@@ -10,6 +10,7 @@ const LoginForm = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const themeStyles = getThemeStyles(darkMode);
   const { themeClasses, cardClasses, inputClasses, buttonClasses } = getUIClasses();
@@ -17,6 +18,7 @@ const LoginForm = () => {
   // Función para manejar el envío del formulario
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const resp = await fetch('/api/auth/login', {
         method: 'POST',
@@ -35,6 +37,8 @@ const LoginForm = () => {
     } catch (err) {
       console.error('Login error', err);
       alert('Error de conexión');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -98,25 +102,20 @@ const LoginForm = () => {
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center space-x-2 text-sm text-[var(--text)]" htmlFor="remember-me">
-                <input
-                  className="h-4 w-4 rounded border-[var(--border)] bg-[var(--surface)]"
-                  type="checkbox"
-                  name="remember-me"
-                  id="remember-me"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                <span className="text-[var(--text-muted)]">Remember me</span>
-              </label>
-            </div>
-
             <button
-              className={`w-full py-3 rounded-md font-medium ${buttonClasses.primary}`}
+              className={`w-full py-3 rounded-md font-medium ${buttonClasses.primary} disabled:opacity-50 disabled:cursor-not-allowed`}
               type="submit"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
             >
-              Sign In
+              {isSubmitting ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined animate-spin text-[var(--on-primary)] text-base">progress_activity</span>
+                  Signing In...
+                </span>
+              ) : (
+                'Sign In'
+              )}
             </button>
           </form>
         </div>

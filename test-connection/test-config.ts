@@ -31,7 +31,16 @@ export class Config {
   private loadConfig(): TestConfig {
     return {
       mongodb: {
-        uri: process.env.MONGODB_URI || "mongodb://localhost:27017",
+        uri: (() => {
+          const direct = process.env.MONGODB_URI?.trim();
+          if (direct) return direct;
+          const host = process.env.MONGODB_HOST || "localhost";
+          const port = process.env.PORT_MONGODB || "27017";
+          const user = process.env.MONGODB_USERNAME || process.env.MONGODB_USER || "";
+          const pass = process.env.MONGODB_PASSWORD || process.env.MONGODB_PASS || "";
+          const auth = user && pass ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@` : "";
+          return `mongodb://${auth}${host}:${port}`;
+        })(),
         testDb: process.env.TEST_DB || "test_db",
         testCollection: process.env.TEST_COLLECTION || "test_collection",
         timeout: parseInt(process.env.MONGODB_TIMEOUT || "10000", 10)
@@ -116,17 +125,20 @@ export class Config {
    * Obtiene las variables de entorno requeridas
    */
   public getRequiredEnvVars(): string[] {
-    // Requerimos solo la URI de Mongo; el token puede venir de NEXT_PUBLIC_API_TOKEN o omitirse para tests de Mongo
-    return ["MONGODB_URI"];
+    // Se requiere configuración de Mongo: `MONGODB_URI` o `PORT_MONGODB` (con host por defecto)
+    return ["MONGODB_URI", "PORT_MONGODB"];
   }
 
   /**
    * Valida que todas las variables de entorno requeridas estén presentes
    */
   public validateEnvironment(): { valid: boolean; missing: string[] } {
-    const required = this.getRequiredEnvVars();
-    const missing = required.filter(varName => !process.env[varName]);
-    
+    const hasUri = !!(process.env.MONGODB_URI && process.env.MONGODB_URI.trim());
+    const hasPort = !!process.env.PORT_MONGODB;
+    const missing: string[] = [];
+    if (!hasUri && !hasPort) {
+      missing.push("MONGODB_URI or PORT_MONGODB");
+    }
     return {
       valid: missing.length === 0,
       missing
