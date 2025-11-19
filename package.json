@@ -1,6 +1,6 @@
 {
   "name": "simple-api-mongodb-crud",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "cls && next dev",
+    "generate": "node scripts/generate-env.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -35,14 +36,14 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "3",
-    "@rushstack/eslint-patch": "^1.13.0",
+    "@rushstack/eslint-patch": "^1.15.0",
     "@tailwindcss/postcss": "4",
     "@types/node": "20",
     "@types/react": "19",
     "@types/react-dom": "19",
     "concurrently": "^9.0.0",
     "cross-env": "7",
-    "eslint": "9",
+    "eslint": "^8.57.0",
     "eslint-config-next": "15.5.0",
     "nodemon": "3",
     "start-server-and-test": "^2.0.1",

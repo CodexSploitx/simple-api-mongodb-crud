@@ -57,14 +57,13 @@ const Dashboard = () => {
   const [isSearching, setIsSearching] = useState(false);
   // Estado de usuario actual y permisos
   const [currentUser, setCurrentUser] = useState<{ _id: string; username?: string; role?: "admin" | "user"; permissions?: Record<string, boolean> } | null>(null);
-  const [userLoading, setUserLoading] = useState(false);
 
   const API_TOKEN = process.env.NEXT_PUBLIC_API_TOKEN;
 
   // Cargar usuario actual desde /api/auth/me
   useEffect(() => {
     const loadUser = async () => {
-      setUserLoading(true);
+      
       try {
         const res = await fetch("/api/auth/me", { credentials: "include" });
         if (res.ok) {
@@ -77,7 +76,6 @@ const Dashboard = () => {
         console.error("Error loading user:", error);
         setCurrentUser(null);
       } finally {
-        setUserLoading(false);
       }
     };
     loadUser();
@@ -369,7 +367,6 @@ const Dashboard = () => {
   const canCreate = Boolean(currentUser?.permissions?.register);
   const canUpdate = Boolean(currentUser?.permissions?.update);
   const canDelete = Boolean(currentUser?.permissions?.delete);
-  const canFind = Boolean(currentUser?.permissions?.find);
   const isAdmin = currentUser?.role === "admin";
 
   const createDocument = async () => {
@@ -506,7 +503,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedDb, selectedCollection, API_TOKEN, loadDocuments]);
+  }, [selectedDb, selectedCollection, API_TOKEN, loadDocuments, isAdmin]);
 
   const themeStyles = getThemeStyles(darkMode);
   const { themeClasses, cardClasses, inputClasses, buttonClasses } = getUIClasses();
@@ -677,7 +674,7 @@ const Dashboard = () => {
                         <span className="ml-1">Contains</span>
                       </button>
                       <p className="text-xs text-[var(--text-muted)] w-full mt-2">
-                        Select a field, type a value, and press Search. Toggle "Contains" for partial matches. Use "Clear" to remove the filter.
+                        Select a field, type a value, and press Search. Toggle &ldquo;Contains&rdquo; for partial matches. Use &ldquo;Clear&rdquo; to remove the filter.
                       </p>
                     </div>
                   </div>
