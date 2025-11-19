@@ -3,6 +3,7 @@
 
 import { useState, type FormEvent } from "react";
 import { getThemeStyles, getUIClasses } from "../../../styles/colors";
+import { LockClosedIcon, SunIcon, MoonIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 
 const LoginForm = () => {
   // Estado para manejar los inputs del formulario
@@ -49,7 +50,7 @@ const LoginForm = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-9 h-9 bg-[var(--accent)] rounded-lg flex items-center justify-center">
-                <span className="material-symbols-outlined text-[var(--on-accent)] text-base">lock</span>
+                <LockClosedIcon className="w-5 h-5 text-[var(--on-accent)]" />
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-[var(--text)]">Sign In</h2>
@@ -61,9 +62,11 @@ const LoginForm = () => {
               className={`p-2 rounded-lg ${buttonClasses.secondary}`}
               aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
             >
-              <span className="material-symbols-outlined text-[var(--text)] text-base">
-                {darkMode ? "light_mode" : "dark_mode"}
-              </span>
+              {darkMode ? (
+                <SunIcon className="w-4 h-4 text-[var(--text)]" />
+              ) : (
+                <MoonIcon className="w-4 h-4 text-[var(--text)]" />
+              )}
             </button>
           </div>
 
@@ -110,7 +113,7 @@ const LoginForm = () => {
             >
               {isSubmitting ? (
                 <span className="inline-flex items-center justify-center gap-2">
-                  <span className="material-symbols-outlined animate-spin text-[var(--on-primary)] text-base">progress_activity</span>
+                  <ArrowPathIcon className="w-4 h-4 animate-spin text-[var(--on-primary)]" />
                   Signing In...
                 </span>
               ) : (

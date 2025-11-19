@@ -21,6 +21,26 @@ body {
 
 
 
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) var(--surface);
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--surface);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--accent), var(--primary));
+  border-radius: 9999px;
+  border: 2px solid var(--surface);
+}
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--accent-hover), var(--primary-hover));
+}
+
 /* Estilo para el fondo de estrellas animado */
 .stars {
   background: #000 url(https://www.transparenttextures.com/patterns/stardust.png);

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { getThemeStyles, getUIClasses } from "@/styles/colors";
 import { verifyAdmin, type Permissions } from './actions';
 import Tabs from './components/Tabs';
+import { UserPlusIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import LoginForm from './components/LoginForm';
 import CreateUserForm from './components/CreateUserForm';
 import ManageUserForm from './components/ManageUserForm';
@@ -36,8 +37,8 @@ export default function AdminRegisterPanel() {
             <div>
               <Tabs
                 tabs={[
-                  { key: 'create', label: 'Registrar', icon: 'person_add' },
-                  { key: 'manage', label: 'Gestionar', icon: 'manage_accounts' },
+                  { key: 'create', label: 'Registrar', icon: <UserPlusIcon className="w-4 h-4" /> },
+                  { key: 'manage', label: 'Gestionar', icon: <Cog6ToothIcon className="w-4 h-4" /> },
                 ]}
                 active={activeTab}
                 onChange={(k)=>setActiveTab(k as 'create'|'manage')}

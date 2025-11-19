@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import type { ButtonClasses } from "../types";
+import { PencilSquareIcon, XMarkIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 
 interface EditModalProps {
   darkMode: boolean;
@@ -31,14 +32,14 @@ const EditModal: React.FC<EditModalProps> = ({
       <div className={`w-full max-w-2xl p-6 rounded-lg border ${cardClasses}`}>
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-semibold text-[var(--text)] flex items-center space-x-2">
-            <span className="material-symbols-outlined text-[var(--text-muted)] text-base">edit</span>
+            <PencilSquareIcon className="w-5 h-5 text-[var(--text-muted)]" />
             <span>Edit Document</span>
           </h3>
           <button
             onClick={onClose}
             className={`p-2 rounded-lg transition-colors duration-200 ${darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
           >
-            <span className="material-symbols-outlined text-[var(--text)] text-base">close</span>
+            <XMarkIcon className="w-5 h-5 text-[var(--text)]" />
           </button>
         </div>
 
@@ -63,7 +64,7 @@ const EditModal: React.FC<EditModalProps> = ({
               className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${buttonClasses.primary}`}
             >
               <span className="flex items-center justify-center space-x-2">
-                <span className="material-symbols-outlined text-[var(--on-primary)] text-base">save</span>
+                <ArrowDownTrayIcon className="w-4 h-4 text-[var(--on-primary)]" />
                 <span>Update Document</span>
               </span>
             </button>

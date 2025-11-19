@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { getUIClasses } from "../../styles/colors";
+import { CircleStackIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 
 type DbMap = Record<string, true>;
 
@@ -75,7 +76,7 @@ export default function DbExplorer({ onViewCollection, onSelectDb }: DbExplorerP
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-[var(--accent)] rounded-lg flex items-center justify-center">
-            <span className="material-symbols-outlined text-[var(--on-accent)] text-base">storage</span>
+            <CircleStackIcon className="w-5 h-5 text-[var(--on-accent)]" />
           </div>
           <div>
             <h1 className="text-xl font-semibold text-[var(--text)]">Databases</h1>
@@ -97,7 +98,7 @@ export default function DbExplorer({ onViewCollection, onSelectDb }: DbExplorerP
 
       {error && (
         <div className={`p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-600 mb-4`}>
-          <span className="material-symbols-outlined align-middle mr-2">error</span>
+          <ExclamationTriangleIcon className="w-5 h-5 align-middle mr-2" />
           <span className="align-middle text-sm">{error}</span>
         </div>
       )}
@@ -105,7 +106,7 @@ export default function DbExplorer({ onViewCollection, onSelectDb }: DbExplorerP
       {!loading && databases.length === 0 ? (
         <div className={`p-6 rounded-lg border ${cardClasses} text-center`}>
           <div className="w-12 h-12 mx-auto mb-2 bg-[var(--accent)]/15 rounded-full flex items-center justify-center">
-            <span className="material-symbols-outlined text-[var(--accent)]">database</span>
+            <CircleStackIcon className="w-6 h-6 text-[var(--accent)]" />
           </div>
           <h2 className="text-lg font-medium text-[var(--text)]">No databases found</h2>
           <p className="text-sm text-[var(--text-muted)]">Create data or check your connection settings.</p>

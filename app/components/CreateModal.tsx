@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import type { ButtonClasses } from "../types";
+import { PlusCircleIcon, XMarkIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 
 interface CreateModalProps {
   cardClasses: string;
@@ -26,14 +27,14 @@ const CreateModal: React.FC<CreateModalProps> = ({
       <div className={`w-full max-w-2xl p-6 rounded-lg border ${cardClasses}`}>
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-semibold text-[var(--text)] flex items-center space-x-2">
-            <span className="material-symbols-outlined text-[var(--text-muted)] text-base">add_circle</span>
+            <PlusCircleIcon className="w-5 h-5 text-[var(--text-muted)]" />
             <span>Create Document</span>
           </h3>
           <button
             onClick={onClose}
             className={`p-2 rounded-lg transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-700`}
           >
-            <span className="material-symbols-outlined text-[var(--text)] text-base">close</span>
+            <XMarkIcon className="w-5 h-5 text-[var(--text)]" />
           </button>
         </div>
 
@@ -54,7 +55,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
               className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${buttonClasses.purple}`}
             >
               <span className="flex items-center justify-center space-x-2">
-                <span className="material-symbols-outlined text-[var(--on-primary)] text-base">save</span>
+                <ArrowDownTrayIcon className="w-4 h-4 text-[var(--on-primary)]" />
                 <span>Create Document</span>
               </span>
             </button>

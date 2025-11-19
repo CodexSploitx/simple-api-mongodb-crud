@@ -2,7 +2,7 @@
 import React from "react";
 import { getUIClasses } from "@/styles/colors";
 
-type Tab = { key: string; label: string; icon?: string };
+type Tab = { key: string; label: string; icon?: React.ReactNode };
 
 interface TabsProps {
   tabs: Tab[];
@@ -22,7 +22,7 @@ const Tabs: React.FC<TabsProps> = ({ tabs, active, onChange }) => {
           title={t.label}
         >
           <span className="flex items-center gap-2">
-            {t.icon && <span className="material-symbols-outlined text-[var(--on-primary)] text-[16px]">{t.icon}</span>}
+            {t.icon && <span className="inline-flex items-center text-[var(--on-primary)]">{t.icon}</span>}
             <span>{t.label}</span>
           </span>
         </button>

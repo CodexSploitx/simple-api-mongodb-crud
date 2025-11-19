@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import type { ButtonClasses } from "../types";
+import { CircleStackIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 
 interface MissingResourceProps {
   error?: string;
@@ -48,7 +49,7 @@ const MissingResource: React.FC<MissingResourceProps> = ({
     <div className={`mx-auto max-w-xl p-6 rounded-2xl border ${cardClasses}`}>
       <div className="text-center">
         <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-[var(--surface)] flex items-center justify-center">
-          <span className="material-symbols-outlined text-red-500 text-3xl">database_off</span>
+          <CircleStackIcon className="w-8 h-8 text-red-500" />
         </div>
         <h2 className="text-xl font-semibold text-[var(--text)] mb-2">{title}</h2>
         <p className="text-sm text-[var(--text-muted)] mb-6">
@@ -62,7 +63,7 @@ const MissingResource: React.FC<MissingResourceProps> = ({
             className={`px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses.secondary}`}
           >
             <span className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[var(--text)] text-base">add_circle</span>
+              <PlusCircleIcon className="w-5 h-5 text-[var(--text)]" />
               <span>{ctaText}</span>
             </span>
           </button>

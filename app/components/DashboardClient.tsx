@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useCallback, useEffect } from "react";
 import { getThemeStyles, getUIClasses } from "../../styles/colors";
+import { ExclamationTriangleIcon, ArrowPathIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import DocumentGrid from "./DocumentGrid";
@@ -445,10 +446,10 @@ const Dashboard = () => {
             return;
           }
           const msg = error === "Database not found"
-            ? `La base de datos '${selectedDb}' no existe. Créala junto con '${selectedCollection}'.`
+            ? `The database '${selectedDb}' does not exist. Create it along with '${selectedCollection}'.`
             : error === "Collection not found"
-            ? `La colección '${selectedCollection}' no existe en '${selectedDb}'. Créala ahora.`
-            : "Crea una nueva base de datos y/o colección.";
+            ? `The collection '${selectedCollection}' does not exist in '${selectedDb}'. Create it now.`
+            : "Create a new database and/or collection.";
           setCreateModalMessage(msg);
           setNewDbName(selectedDb);
           setNewCollectionName(selectedCollection);
@@ -510,7 +511,7 @@ const Dashboard = () => {
                   : "bg-red-50 border-red-200 text-red-700"
               }`}>
                 <div className="flex items-center space-x-2">
-                  <span className="material-symbols-outlined text-red-500 text-base">error</span>
+                  <ExclamationTriangleIcon className="w-5 h-5 text-red-500" />
                   <span>{error}</span>
                 </div>
               </div>
@@ -518,7 +519,7 @@ const Dashboard = () => {
 
           {loading && (
             <div className="text-center py-12">
-              <span className="material-symbols-outlined animate-spin inline-block text-[var(--text)] text-2xl">progress_activity</span>
+              <ArrowPathIcon className="w-8 h-8 animate-spin inline-block text-[var(--text)]" />
               <p className="mt-4 text-sm text-[var(--text-muted)]">Loading documents...</p>
             </div>
           )}
@@ -542,8 +543,8 @@ const Dashboard = () => {
                   className={`px-2 py-1 rounded-md text-xs ${buttonClasses.secondary}`}
                   onClick={goBackToDatabases}
                 >
-                  <span className="material-symbols-outlined text-[var(--text)] text-base align-middle">arrow_back</span>
-                  <span className="ml-1 align-middle">Volver a bases</span>
+                  <ArrowLeftIcon className="w-4 h-4 text-[var(--text)] align-middle" />
+                  <span className="ml-1 align-middle">Back to DataBases</span>
                 </button>
               </div>
               {/* Header with pagination */}
@@ -581,61 +582,61 @@ const Dashboard = () => {
                 />
               </div>
 
-              {/* Missing resource component or documents grid */}
-              {(!isConnected && (error === "Database not found" || error === "Collection not found")) ? (
-                <MissingResource
-                  error={error}
-                  selectedDb={selectedDb}
-                  selectedCollection={selectedCollection}
-                  cardClasses={cardClasses}
-                  buttonClasses={buttonClasses}
-                  onCreateClick={() => {
-                    if (!isAdmin) {
-                      setError("Only admins can create databases/collections");
-                      return;
-                    }
-                    const msg = error === "Database not found"
-                      ? `La base de datos '${selectedDb}' no existe. Créala junto con '${selectedCollection}'.`
-                      : error === "Collection not found"
-                      ? `La colección '${selectedCollection}' no existe en '${selectedDb}'. Créala ahora.`
-                      : "Crea una nueva base de datos y/o colección.";
-                    setCreateModalMessage(msg);
-                    setNewDbName(selectedDb);
-                    setNewCollectionName(selectedCollection);
-                    setShowCreateDbModal(true);
-                  }}
-                  canCreateDbCollection={isAdmin}
-                  disableReasonCreateDb={isAdmin ? undefined : "Only admins can create databases/collections"}
-                />
-              ) : (
-                <DocumentGrid
-                  documents={documents}
-                  darkMode={darkMode}
-                  cardClasses={cardClasses}
-                  buttonClasses={buttonClasses}
-                  onEdit={openEditModal}
-                  onDelete={(id: string) => deleteDocument(id)}
-                  canUpdate={canUpdate}
-                  canDelete={canDelete}
-                  disableReasonUpdate={canUpdate ? undefined : "You don't have permission to update documents"}
-                  disableReasonDelete={canDelete ? undefined : "You don't have permission to delete documents"}
-                  onViewFull={(doc) => { setViewDoc(doc as Document); setShowViewModal(true); }}
-                />
-              )}
-
-              {/* Bottom Pagination */}
-              {totalPages > 1 && (
-                <div className="flex justify-center mt-8">
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
+              <div className="max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
+                {(!isConnected && (error === "Database not found" || error === "Collection not found")) ? (
+                  <MissingResource
+                    error={error}
+                    selectedDb={selectedDb}
+                    selectedCollection={selectedCollection}
+                    cardClasses={cardClasses}
                     buttonClasses={buttonClasses}
-                    onPageChange={handlePageChange}
-                    variant="full"
-                    darkMode={darkMode}
+                    onCreateClick={() => {
+                      if (!isAdmin) {
+                        setError("Only admins can create databases/collections");
+                        return;
+                      }
+                      const msg = error === "Database not found"
+                        ? `La base de datos '${selectedDb}' no existe. Créala junto con '${selectedCollection}'.`
+                        : error === "Collection not found"
+                        ? `La colección '${selectedCollection}' no existe en '${selectedDb}'. Créala ahora.`
+                        : "Crea una nueva base de datos y/o colección.";
+                      setCreateModalMessage(msg);
+                      setNewDbName(selectedDb);
+                      setNewCollectionName(selectedCollection);
+                      setShowCreateDbModal(true);
+                    }}
+                    canCreateDbCollection={isAdmin}
+                    disableReasonCreateDb={isAdmin ? undefined : "Only admins can create databases/collections"}
                   />
-                </div>
-              )}
+                ) : (
+                  <DocumentGrid
+                    documents={documents}
+                    darkMode={darkMode}
+                    cardClasses={cardClasses}
+                    buttonClasses={buttonClasses}
+                    onEdit={openEditModal}
+                    onDelete={(id: string) => deleteDocument(id)}
+                    canUpdate={canUpdate}
+                    canDelete={canDelete}
+                    disableReasonUpdate={canUpdate ? undefined : "You don't have permission to update documents"}
+                    disableReasonDelete={canDelete ? undefined : "You don't have permission to delete documents"}
+                    onViewFull={(doc) => { setViewDoc(doc as Document); setShowViewModal(true); }}
+                  />
+                )}
+
+                {totalPages > 1 && (
+                  <div className="flex justify-center mt-8">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      buttonClasses={buttonClasses}
+                      onPageChange={handlePageChange}
+                      variant="full"
+                      darkMode={darkMode}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </main>

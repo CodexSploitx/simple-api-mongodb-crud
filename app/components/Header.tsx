@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import type { ButtonClasses } from "../types";
+import { CircleStackIcon, UserIcon, BoltIcon, PlusIcon, SunIcon, MoonIcon, ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
 
 interface HeaderProps {
   darkMode: boolean;
@@ -72,7 +73,7 @@ const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-[var(--accent)] rounded-lg flex items-center justify-center">
-            <span className="material-symbols-outlined text-[var(--on-accent)] text-base">database</span>
+            <CircleStackIcon className="w-5 h-5 text-[var(--on-accent)]" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
@@ -86,7 +87,7 @@ const Header: React.FC<HeaderProps> = ({
           {displayUserName && (
             <div className="group flex items-center gap-3 px-3 py-2 rounded-full bg-[var(--surface)]/80 border border-[var(--border)] shadow-sm hover:shadow-md hover:bg-[var(--surface)] transition">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/15 ring-1 ring-[var(--border)]">
-                <span className="material-symbols-outlined text-[var(--accent)] text-[18px]">person</span>
+                <UserIcon className="w-4 h-4 text-[var(--accent)]" />
               </div>
               <div className="flex items-center">
                 <span className="text-sm font-medium text-[var(--text)]">{displayUserName}</span>
@@ -116,7 +117,7 @@ const Header: React.FC<HeaderProps> = ({
             aria-expanded={actionsOpen}
           >
             <span className="flex items-center space-x-2">
-              <span className="material-symbols-outlined text-[var(--text)] text-base">bolt</span>
+              <BoltIcon className="w-4 h-4 text-[var(--text)]" />
               <span>Actions</span>
             </span>
           </button>
@@ -135,7 +136,7 @@ const Header: React.FC<HeaderProps> = ({
                 role="menuitem"
               >
                 <span className="flex items-center space-x-2">
-                  <span className="material-symbols-outlined text-[var(--on-primary)] text-base">add</span>
+                  <PlusIcon className="w-4 h-4 text-[var(--on-primary)]" />
                   <span>Add Document</span>
                 </span>
               </button>
@@ -151,7 +152,7 @@ const Header: React.FC<HeaderProps> = ({
                 role="menuitem"
               >
                 <span className="flex items-center space-x-2">
-                  <span className="material-symbols-outlined text-[var(--text)] text-base">database</span>
+                  <CircleStackIcon className="w-4 h-4 text-[var(--text)]" />
                   <span>Create DB/Collection</span>
                 </span>
               </button>
@@ -165,9 +166,11 @@ const Header: React.FC<HeaderProps> = ({
             className={`p-2 rounded-lg ${buttonClasses.secondary} text-sm`}
             aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           >
-            <span className="material-symbols-outlined text-[var(--text)] text-base">
-              {darkMode ? 'light_mode' : 'dark_mode'}
-            </span>
+            {darkMode ? (
+              <SunIcon className="w-4 h-4 text-[var(--text)]" />
+            ) : (
+              <MoonIcon className="w-4 h-4 text-[var(--text)]" />
+            )}
           </button>
 
           <button
@@ -186,7 +189,7 @@ const Header: React.FC<HeaderProps> = ({
             title="Logout"
             aria-label="Logout"
           >
-            <span className="material-symbols-outlined text-[var(--text-muted)] group-hover:text-red-600 text-base">logout</span>
+            <ArrowRightStartOnRectangleIcon className="w-4 h-4 text-[var(--text-muted)] group-hover:text-red-600" />
           </button>
         </div>
       </div>

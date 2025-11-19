@@ -1,11 +1,12 @@
 // colors.ts
-// Paleta inspirada en Auth0 con versiones Light y Dark Theme.
+// Paleta basada en seenode.com (solo se cambiaron colores)
 
+// === BASE COLORS (nuevo) ===
 export const baseColors = {
-  blue: '#44c7f4',   // Auth0 blue
-  orange: '#eb5424', // Auth0 orange
-  dark: '#16214d',   // Auth0 dark navy
-  grey: '#d0d2d3',   // Neutral grey
+  blue: '#2D72D9',
+  orange: '#0EA5E9',
+  dark: '#0C1423',
+  grey: '#93A1B8',
   white: '#ffffff',
   black: '#000000',
 } as const;
@@ -14,66 +15,61 @@ export const baseColors = {
 export const lightTheme = {
   name: 'light',
 
-  background: baseColors.white,
-  // Slightly darker surface for better separation in light mode
-  surface: '#f3f4f6',
-  // Higher contrast body text in light mode
-  text: '#111827', // gray-900
-  // Darker muted text for readability on white
-  textMuted: '#4b5563', // gray-600
-  // Darker border to improve delineation of cards/inputs
-  border: '#d1d5db', // gray-300
+  background: '#F7FAFC',
+  surface: '#EDF2F7',
+  text: '#0F172A',
+  textMuted: '#64748B',
+  border: '#CBD5E1',
 
-  primary: baseColors.dark,
-  primaryHover: '#1f2b6b',
-  accent: baseColors.blue,
-  accentHover: '#2fb7e6',
-  danger: baseColors.orange,
+  primary: '#1D4ED8',
+  primaryHover: '#1E40AF',
 
-  success: '#3ccf91',
-  warning: '#f5a623',
+  accent: '#0EA5E9',
+  accentHover: '#0284C7',
 
-  // Para botones o fondos destacados
-  card: '#ffffff',
+  danger: '#DC2626',
+
+  success: '#16A34A',
+  warning: '#D97706',
+
+  card: '#FFFFFF',
   cardShadow: 'rgba(0, 0, 0, 0.08)',
 
-  // Texto sobre fondos oscuros
   onPrimary: baseColors.white,
   onAccent: baseColors.white,
   onDanger: baseColors.white,
 } as const;
 
+
 // === DARK THEME ===
 export const darkTheme = {
   name: 'dark',
 
-  background: '#0f172a',
-  surface: '#1e293b',
-  text: '#f8fafc',
-  textMuted: '#94a3b8',
-  border: '#334155',
+  background: '#0B1220',
+  surface: '#121A2B',
+  text: '#E6EDF3',
+  textMuted: '#93A1B8',
+  border: '#1F2A44',
 
-  primary: baseColors.blue,
-  primaryHover: '#33b5e6',
-  accent: baseColors.orange,
-  accentHover: '#ff6734',
-  danger: '#f87171',
+  primary: '#2D72D9',
+  primaryHover: '#1B61C2',
+  accent: '#22A8F0',
+  accentHover: '#1C90D6',
+  danger: '#EF4444',
 
-  success: '#22c55e',
-  warning: '#facc15',
+  success: '#22C55E',
+  warning: '#F59E0B',
 
-  // Para tarjetas y elementos flotantes
-  card: '#1e293b',
-  cardShadow: 'rgba(0, 0, 0, 0.4)',
+  card: '#0E1626',
+  cardShadow: 'rgba(0, 0, 0, 0.40)',
 
-  // Texto sobre botones/accent
-  onPrimary: baseColors.white, // ensure good contrast on primary in dark mode
+  onPrimary: baseColors.white,
   onAccent: baseColors.white,
   onDanger: baseColors.white,
 } as const;
 
+
 // === Exportación general ===
-// Theme must support both light and dark variants
 export type Theme = typeof lightTheme | typeof darkTheme;
 export const themes = { light: lightTheme, dark: darkTheme };
 export default themes;
@@ -81,7 +77,6 @@ export default themes;
 // === Theme helpers ===
 export const getTheme = (darkMode: boolean): Theme => (darkMode ? darkTheme : lightTheme);
 
-// Expose CSS variables for use with Tailwind arbitrary values (e.g., bg-[var(--background)])
 export const getThemeStyles = (darkMode: boolean): Record<string, string> => {
   const t = getTheme(darkMode);
   return {
@@ -105,9 +100,8 @@ export const getThemeStyles = (darkMode: boolean): Record<string, string> => {
   };
 };
 
-// UI class presets based on theme CSS variables
+// UI Class presets (no se cambiaron)
 export const getUIClasses = () => {
-  // Use CSS variables consistently to allow easy theme switching
   const themeClasses = 'min-h-screen bg-[var(--background)] text-[var(--text)]';
   const cardClasses = 'bg-[var(--card)] border border-[var(--border)] shadow-sm';
   const inputClasses = [
@@ -167,7 +161,6 @@ export const getUIClasses = () => {
       'transition-colors',
       'duration-200',
     ].join(' '),
-    // Map purple variant to accent for a consistent palette
     purple: [
       'bg-[var(--accent)]',
       'hover:bg-[var(--accent-hover)]',

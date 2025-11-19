@@ -1,6 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import type { ButtonClasses } from "../types";
+import { EyeIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 interface DocumentType {
   _id: string;
@@ -56,14 +57,14 @@ const DocumentViewModal: React.FC<DocumentViewModalProps> = ({
       <div className={`w-full max-w-4xl p-6 rounded-lg border ${cardClasses}`}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-[var(--text)] flex items-center space-x-2">
-            <span className="material-symbols-outlined text-[var(--text-muted)] text-base">visibility</span>
+            <EyeIcon className="w-5 h-5 text-[var(--text-muted)]" />
             <span>Full Document</span>
           </h3>
           <button
             onClick={onClose}
             className={`p-2 rounded-lg transition-colors duration-200 ${darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
           >
-            <span className="material-symbols-outlined text-[var(--text)] text-base">close</span>
+            <XMarkIcon className="w-5 h-5 text-[var(--text)]" />
           </button>
         </div>
 

@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import type { ButtonClasses } from "../types";
+import { LinkIcon, ExclamationTriangleIcon, CircleStackIcon, ArrowPathIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 
 interface SidebarProps {
   selectedDb: string;
@@ -47,7 +48,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* Connection Section */}
         <div>
           <h2 className="text-lg font-medium text-[var(--text)] mb-4 flex items-center">
-            <span className="material-symbols-outlined mr-2 text-[var(--text-muted)] text-base">link</span>
+            <LinkIcon className="w-4 h-4 mr-2 text-[var(--text-muted)]" />
             Connection
           </h2>
 
@@ -84,7 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             {!isConnected && (error === "Database not found" || error === "Collection not found") && (
               <div className={`p-3 rounded-lg border ${cardClasses}`}>
                 <div className="flex items-start space-x-2">
-                  <span className="material-symbols-outlined text-red-500 text-base">error</span>
+                  <ExclamationTriangleIcon className="w-4 h-4 text-red-500" />
                   <div>
                     <p className="text-sm text-[var(--text)]">
                       {error === "Database not found" && selectedDb
@@ -101,7 +102,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       className={`mt-3 w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${buttonClasses.secondary}`}
                     >
                       <span className="flex items-center justify-center space-x-2">
-                        <span className="material-symbols-outlined text-[var(--text)] text-base">database</span>
+                        <CircleStackIcon className="w-4 h-4 text-[var(--text)]" />
                         <span>{error === "Database not found" ? "Create Database & Collection" : "Create Collection"}</span>
                       </span>
                     </button>
@@ -118,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               }`}
             >
               <span className="flex items-center justify-center space-x-2">
-                <span className="material-symbols-outlined text-[var(--on-primary)] text-base">sync</span>
+                <ArrowPathIcon className="w-4 h-4 text-[var(--on-primary)]" />
                 <span>{loading ? "Loading..." : "Load Documents"}</span>
               </span>
             </button>
@@ -129,7 +130,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses.primary}`}
             >
               <span className="flex items-center justify-center space-x-2">
-                <span className="material-symbols-outlined text-[var(--on-primary)] text-base">link</span>
+                <LinkIcon className="w-4 h-4 text-[var(--on-primary)]" />
                 <span>{loading ? "Connecting..." : "Connect"}</span>
               </span>
             </button>
@@ -142,7 +143,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {isConnected && (
           <div className={`p-6 rounded-2xl border ${cardClasses}`}>
             <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2 text-[var(--text)]">
-              <span className="material-symbols-outlined text-green-500 text-base">bar_chart</span>
+              <ChartBarIcon className="w-4 h-4 text-green-500" />
               <span>Statistics</span>
             </h3>
 
