@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useCallback, useEffect } from "react";
 import { getThemeStyles, getUIClasses } from "../../styles/colors";
-import { ExclamationTriangleIcon, ArrowPathIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { ExclamationTriangleIcon, ArrowPathIcon, ArrowLeftIcon, MagnifyingGlassIcon, FunnelIcon, XMarkIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import DocumentGrid from "./DocumentGrid";
@@ -51,6 +51,10 @@ const Dashboard = () => {
   const [fieldNames, setFieldNames] = useState<string[]>([]);
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewDoc, setViewDoc] = useState<Document | null>(null);
+  const [activeSearchField, setActiveSearchField] = useState<string | null>(null);
+  const [searchValueInput, setSearchValueInput] = useState("");
+  const [useRegex, setUseRegex] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   // Estado de usuario actual y permisos
   const [currentUser, setCurrentUser] = useState<{ _id: string; username?: string; role?: "admin" | "user"; permissions?: Record<string, boolean> } | null>(null);
   const [userLoading, setUserLoading] = useState(false);
@@ -157,7 +161,11 @@ const Dashboard = () => {
     if (!connectedDb || !connectedCollection) return;
     if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
       setCurrentPage(newPage);
-      loadDocuments(connectedDb, connectedCollection, newPage);
+      if (isSearching && activeSearchField && searchValueInput) {
+        loadDocumentsWithSearch(connectedDb, connectedCollection, newPage, activeSearchField, searchValueInput, useRegex);
+      } else {
+        loadDocuments(connectedDb, connectedCollection, newPage);
+      }
     }
   };
 
@@ -228,6 +236,84 @@ const Dashboard = () => {
       setLoading(false);
     }
   }, [API_TOKEN]);
+
+  const loadDocumentsWithSearch = useCallback(async (db: string, collection: string, page: number = 1, field?: string | null, value?: string, regex: boolean = true) => {
+    if (!db || !collection) return;
+    setLoading(true);
+    try {
+      const limit = 10;
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (field && value) {
+        params.set("searchField", field);
+        params.set("searchValue", value);
+        params.set("regex", String(regex));
+      }
+      const response = await fetch(`/api/${db}/${collection}?${params.toString()}`, {
+        headers: {
+          ...(API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {}),
+        },
+        credentials: "include",
+      });
+      if (response.ok) {
+        const json = await response.json();
+        const payload = json?.data || {};
+        const docs = payload.documents || [];
+        const total = payload.pagination?.total ?? (Array.isArray(docs) ? docs.length : 0);
+        const pageNum = payload.pagination?.page ?? page;
+        const totalPagesCalc = payload.pagination?.totalPages ?? Math.ceil(total / limit);
+        setDocuments(docs);
+        const names = Array.isArray(docs)
+          ? Array.from(new Set(docs.flatMap((d: Record<string, unknown>) => Object.keys(d))))
+          : [];
+        setFieldNames(names);
+        setTotalDocuments(total);
+        setTotalPages(totalPagesCalc);
+        setCurrentPage(pageNum);
+        setIsConnected(true);
+        setConnectedDb(db);
+        setConnectedCollection(collection);
+        setError("");
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Error loading documents");
+        setDocuments([]);
+        setTotalDocuments(0);
+        setTotalPages(0);
+        setCurrentPage(1);
+        setIsConnected(false);
+        setConnectedDb("");
+        setConnectedCollection("");
+        setFieldNames([]);
+      }
+    } catch (error) {
+      console.error("Error loading documents:", error);
+      setError("Error connecting to server");
+      setDocuments([]);
+      setTotalDocuments(0);
+      setTotalPages(0);
+      setCurrentPage(1);
+      setIsConnected(false);
+      setConnectedDb("");
+      setConnectedCollection("");
+      setFieldNames([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [API_TOKEN]);
+
+  const applySearch = async () => {
+    if (!connectedDb || !connectedCollection) return;
+    if (!activeSearchField || !searchValueInput.trim()) return;
+    setIsSearching(true);
+    await loadDocumentsWithSearch(connectedDb, connectedCollection, 1, activeSearchField, searchValueInput.trim(), useRegex);
+  };
+
+  const clearSearch = async () => {
+    setIsSearching(false);
+    setActiveSearchField(null);
+    setSearchValueInput("");
+    await loadDocuments(connectedDb, connectedCollection, 1);
+  };
 
   const searchDocuments = async () => {
     if (!selectedDb || !selectedCollection) return;
@@ -426,7 +512,7 @@ const Dashboard = () => {
   const { themeClasses, cardClasses, inputClasses, buttonClasses } = getUIClasses();
 
   return (
-    <div className={themeClasses} style={themeStyles}>
+    <div className={`${themeClasses} h-screen overflow-hidden`} style={themeStyles}>
       <Header
         darkMode={darkMode}
         isConnected={isConnected}
@@ -465,7 +551,7 @@ const Dashboard = () => {
         currentUserRole={currentUser?.role}
       />
 
-      <div className="flex gap-6">
+      <div className="flex gap-6 h-full overflow-hidden min-h-0">
         <Sidebar
           selectedDb={selectedDb}
           selectedCollection={selectedCollection}
@@ -502,8 +588,8 @@ const Dashboard = () => {
         />
 
         {/* Main Content */}
-        <div className="flex-1">
-          <main className="p-6">
+        <div className="flex-1 h-full min-h-0">
+          <main className="p-6 h-full flex flex-col min-h-0 overflow-y-auto custom-scrollbar pb-40">
             {error && (
               <div className={`mb-6 p-4 border rounded-lg ${
                 darkMode 
@@ -538,51 +624,108 @@ const Dashboard = () => {
             />
           ) : (
             <div>
-              <div className="mb-4">
-                <button
-                  className={`px-2 py-1 rounded-md text-xs ${buttonClasses.secondary}`}
-                  onClick={goBackToDatabases}
-                >
-                  <ArrowLeftIcon className="w-4 h-4 text-[var(--text)] align-middle" />
-                  <span className="ml-1 align-middle">Back to DataBases</span>
-                </button>
-              </div>
-              {/* Header with pagination */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
-              <div>
-                <h2 className="text-xl font-semibold text-[var(--text)] mb-1">
-                  {selectedDb}.{selectedCollection}
-                </h2>
-                <p className="text-sm text-[var(--text-muted)]">
-                  {totalDocuments} total documents • Page {currentPage} of {totalPages}
-                </p>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <button
+                    className={`px-2 py-1 rounded-md text-xs inline-flex items-center ${buttonClasses.secondary}`}
+                    onClick={goBackToDatabases}
+                  >
+                    <ArrowLeftIcon className="w-4 h-4 text-[var(--text)] align-middle" />
+                    <span className="ml-1 align-middle">Databases</span>
+                  </button>
+                  <h2 className="text-lg sm:text-xl font-semibold text-[var(--text)] truncate">
+                    {selectedDb}.{selectedCollection}
+                  </h2>
+                </div>
                 {isConnected && fieldNames.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-xs font-medium text-[var(--text)] mb-1">Fields in documents:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {fieldNames.map((name) => (
-                        <span
-                          key={name}
-                          className={`px-2 py-1 text-xs rounded border ${darkMode ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-gray-100 border-gray-300 text-gray-700"}`}
-                        >
-                          {name}
+                  <div className="flex items-center gap-2 flex-[2] w-full sm:w-auto">
+                    <div className="flex items-center gap-2 flex-1 flex-wrap">
+                      <FunnelIcon className="w-4 h-4 text-[var(--text-muted)]" />
+                      {activeSearchField && (
+                        <span className={`px-2 py-1 text-xs rounded ${isSearching ? "bg-emerald-600 text-white" : darkMode ? "bg-gray-800 text-emerald-400 border border-emerald-600" : "bg-gray-100 text-emerald-700 border border-emerald-600"}`}>
+                          {activeSearchField}
                         </span>
-                      ))}
+                      )}
+                      <input
+                        className={`${inputClasses} h-9 flex-1 pl-3`}
+                        placeholder={activeSearchField ? `Search in '${activeSearchField}'` : "Select a field to search"}
+                        value={searchValueInput}
+                        onChange={(e) => setSearchValueInput(e.target.value)}
+                        disabled={!activeSearchField}
+                      />
+                      <button
+                        className={`px-3 h-9 rounded-md text-xs ${buttonClasses.primary} ${(!activeSearchField || !searchValueInput.trim()) ? "opacity-60 cursor-not-allowed" : ""}`}
+                        onClick={applySearch}
+                        disabled={!activeSearchField || !searchValueInput.trim()}
+                      >
+                        <MagnifyingGlassIcon className="w-4 h-4 inline" />
+                        <span className="ml-1">Search</span>
+                      </button>
+                      <button
+                        className={`px-3 h-9 rounded-md text-xs ${buttonClasses.secondary}`}
+                        onClick={clearSearch}
+                        disabled={!isSearching}
+                      >
+                        <XMarkIcon className="w-4 h-4 inline" />
+                        <span className="ml-1">Clear</span>
+                      </button>
+                      <button
+                        className={`px-3 h-9 rounded-md text-xs ${buttonClasses.secondary}`}
+                        onClick={() => setUseRegex(!useRegex)}
+                      >
+                        {useRegex ? <CheckCircleIcon className="w-4 h-4 inline text-emerald-500" /> : <CheckCircleIcon className="w-4 h-4 inline text-gray-400" />}
+                        <span className="ml-1">Contains</span>
+                      </button>
+                      <p className="text-xs text-[var(--text-muted)] w-full mt-2">
+                        Select a field, type a value, and press Search. Toggle "Contains" for partial matches. Use "Clear" to remove the filter.
+                      </p>
                     </div>
                   </div>
                 )}
               </div>
 
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  buttonClasses={buttonClasses}
-                  onPageChange={handlePageChange}
-                  variant="compact"
-                />
-              </div>
+              
 
-              <div className="max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
+              {isConnected && fieldNames.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-xs font-medium text-[var(--text)] mb-1">Fields in documents:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {fieldNames.map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => {
+                          if (activeSearchField === name) {
+                            if (isSearching) {
+                              clearSearch();
+                            } else {
+                              setActiveSearchField(null);
+                              setSearchValueInput("");
+                            }
+                          } else {
+                            setActiveSearchField(name);
+                          }
+                        }}
+                        className={`px-2 py-1 text-xs rounded border transition ${
+                          isSearching && activeSearchField === name
+                            ? "bg-emerald-600 border-emerald-700 text-white"
+                            : activeSearchField === name
+                              ? darkMode
+                                ? "border-emerald-600 text-emerald-400"
+                                : "border-emerald-600 text-emerald-700"
+                              : darkMode
+                                ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"
+                                : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex-1 min-h-0 pr-0">
                 {(!isConnected && (error === "Database not found" || error === "Collection not found")) ? (
                   <MissingResource
                     error={error}

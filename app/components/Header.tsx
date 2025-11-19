@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import type { ButtonClasses } from "../types";
-import { CircleStackIcon, UserIcon, BoltIcon, PlusIcon, SunIcon, MoonIcon, ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
+import { CircleStackIcon, UserIcon, BoltIcon, PlusIcon, SunIcon, MoonIcon, ArrowRightStartOnRectangleIcon, SparklesIcon } from "@heroicons/react/24/outline";
 
 interface HeaderProps {
   darkMode: boolean;
@@ -83,6 +83,18 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
+        <div className="flex-1 flex justify-center">
+          <button
+            onClick={() => { window.location.href = "/api-rest"; }}
+            className={`group px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200 ${buttonClasses.primary}`}
+            title="Generate REST API docs"
+          >
+            <span className="flex items-center space-x-2">
+              <SparklesIcon className="w-4 h-4 text-[var(--on-primary)] transition-transform duration-200 group-hover:rotate-12" />
+              <span>REST API</span>
+            </span>
+          </button>
+        </div>
         <div className="flex items-center space-x-3 relative">
           {displayUserName && (
             <div className="group flex items-center gap-3 px-3 py-2 rounded-full bg-[var(--surface)]/80 border border-[var(--border)] shadow-sm hover:shadow-md hover:bg-[var(--surface)] transition">

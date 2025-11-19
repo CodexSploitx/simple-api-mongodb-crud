@@ -24,6 +24,7 @@ body {
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: var(--accent) var(--surface);
+  scrollbar-gutter: stable both-edges;
 }
 .custom-scrollbar::-webkit-scrollbar {
   width: 10px;
