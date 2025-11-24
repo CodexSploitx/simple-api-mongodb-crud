@@ -143,6 +143,19 @@ We have implemented a **dedicated Authentication API** at `/api/auth-client` to 
 - `POST /api/auth-client/refresh`
 - `POST /api/auth-client/logout`
 
+### 🎛️ **Admin Dashboard**
+
+We've also created an **Admin Dashboard** at `/auth-client` with a simple and optimized design to manage your users:
+
+**Features:**
+
+- 🔍 **Search Users** - Filter by email, username, or ID in real-time
+- 👥 **View All Users** - Complete user list with registration details
+- 🔑 **Change Passwords** - With secure password generator and copy button
+- 🔄 **Revoke Tokens** - Invalidate all user sessions instantly
+- 🗑️ **Delete Users** - Remove users with confirmation dialogs
+- 🔐 **Secure Access** - Protected with admin credentials
+
 > 📘 **Read the full documentation here:** [app/api/auth-client/README.md](app/api/auth-client/README.md)
 
 ---
@@ -300,54 +313,6 @@ Authorization: Bearer YOUR_AUTH_TOKEN
 | **`validateMongoRequest.js`** | Ensures `db` and `collection` are present in the request                      |
 
 </div>
-
----
-
-## 📂 **Project Structure**
-
-```
-.
-├── app/
-│   ├── api/
-│   │   ├── [db]/
-│   │   │   └── [collection]/
-│   │   │       └── route.ts      # Dynamic GET by db and collection
-│   │   ├── find/
-│   │   │   └── route.ts          # GET multiple documents
-│   │   ├── findOne/
-│   │   │   └── route.ts          # GET single document
-│   │   ├── insertOne/
-│   │   │   └── route.ts          # POST create document
-│   │   ├── updateOne/
-│   │   │   └── route.ts          # PUT update document
-│   │   └── deleteOne/
-│   │       └── route.ts          # DELETE remove document
-│   ├── globals.css
-│   ├── layout.tsx                # Main Next.js layout
-│   └── page.tsx                  # Main page
-├── lib/
-│   ├── httpMethodValidator.ts    # HTTP method validator
-│   ├── mongo.ts                  # MongoDB singleton connection
-│   └── requestValidation.ts      # Request and JSON validations
-├── middleware/
-│   └── authToken.ts              # Token authentication middleware
-├── services/
-│   └── crudService.ts            # Reusable CRUD functions
-├── types/
-│   └── mongo.d.ts                # MongoDB interfaces and types
-├── public
-├── .gitignore
-├── .env.local                    # Environment variables (not included in git)
-├── eslint.config.mjs
-├── next.config.ts                # Next.js configuration
-├── package.json
-├── package-lock.json
-├── pnpm-lock.yaml
-├── postcss.config.mjs
-├── tsconfig.json
-├── HOW_USE.md
-└── README.md
-```
 
 ---
 
