@@ -39,11 +39,17 @@ export async function GET(
     }
 
     const useAuthClient = String(process.env.RELACIONALDB_AUTH_CLIENT || "false").toLowerCase() === "true";
-    if (!useAuthClient) {
-      const authResult = await authToken(req, "find");
-      if (authResult !== null) {
-        return authResult as NextResponse<ErrorResponse>;
-      }
+    let authClientOk: RequireAuthClientOk | null = null;
+    let authClientErr: NextResponse<ErrorResponse> | null = null;
+    if (useAuthClient) {
+      const rc = await requireAuthClient(req);
+      if (rc.ok) authClientOk = rc as RequireAuthClientOk;
+      else authClientErr = (rc as RequireAuthClientError).response as NextResponse<ErrorResponse>;
+    }
+
+    const systemAuth = await authToken(req, "find");
+    if (systemAuth !== null && !authClientOk) {
+      return authClientErr ?? systemAuth as NextResponse<ErrorResponse>;
     }
 
     // 3. Await params antes de usar sus propiedades
@@ -109,14 +115,8 @@ export async function GET(
     const sortOrder = searchParams.get('sortOrder') === 'desc' ? -1 : 1;
     const sort = { [sortField]: sortOrder };
 
-    if (useAuthClient) {
-      const auth = await requireAuthClient(req);
-      if (!auth.ok) {
-        const err = auth as RequireAuthClientError;
-        return err.response as NextResponse<ErrorResponse>;
-      }
-      const ok = auth as RequireAuthClientOk;
-      query.ownerId = ok.userId;
+    if (authClientOk) {
+      query.ownerId = authClientOk.userId;
     }
     const result = await findDocuments(decodedDb, decodedCollection, query, {
       limit,

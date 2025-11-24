@@ -28,11 +28,17 @@ const insertOneRequestSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const useAuthClient = String(process.env.RELACIONALDB_AUTH_CLIENT || "false").toLowerCase() === "true";
-    if (!useAuthClient) {
-      const authResult = await authToken(req, "register");
-      if (authResult !== null) {
-        return authResult;
-      }
+    let authClientOk: RequireAuthClientOk | null = null;
+    let authClientErr: NextResponse | null = null;
+    if (useAuthClient) {
+      const rc = await requireAuthClient(req);
+      if (rc.ok) authClientOk = rc as RequireAuthClientOk;
+      else authClientErr = (rc as RequireAuthClientError).response;
+    }
+
+    const systemAuth = await authToken(req, "register");
+    if (systemAuth !== null && !authClientOk) {
+      return authClientErr ?? systemAuth;
     }
 
     // Validate JSON body using our new utility
@@ -45,14 +51,8 @@ export async function POST(req: NextRequest) {
     const validatedBody = insertOneRequestSchema.parse(bodyValidation);
     const { db, collection } = validatedBody;
     let document = validatedBody.document;
-    if (useAuthClient) {
-      const auth = await requireAuthClient(req);
-      if (!auth.ok) {
-        const err = auth as RequireAuthClientError;
-        return err.response;
-      }
-      const ok = auth as RequireAuthClientOk;
-      document = { ...document, ownerId: ok.userId };
+    if (authClientOk) {
+      document = { ...document, ownerId: authClientOk.userId };
     }
     const result = await insertOneWithDynamicDB(db, collection, document);
 

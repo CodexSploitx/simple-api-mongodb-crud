@@ -7,11 +7,17 @@ import { requireAuthClient, type RequireAuthClientOk, type RequireAuthClientErro
 export async function PUT(request: NextRequest): Promise<NextResponse> {
   try {
     const useAuthClient = String(process.env.RELACIONALDB_AUTH_CLIENT || "false").toLowerCase() === "true";
-    if (!useAuthClient) {
-      const authResult = await authToken(request, "update");
-      if (authResult !== null) {
-        return authResult;
-      }
+    let authClientOk: RequireAuthClientOk | null = null;
+    let authClientErr: NextResponse | null = null;
+    if (useAuthClient) {
+      const rc = await requireAuthClient(request);
+      if (rc.ok) authClientOk = rc as RequireAuthClientOk;
+      else authClientErr = (rc as RequireAuthClientError).response;
+    }
+
+    const systemAuth = await authToken(request, "update");
+    if (systemAuth !== null && !authClientOk) {
+      return authClientErr ?? systemAuth;
     }
 
     // Parsear el cuerpo de la petición
@@ -43,14 +49,8 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    if (useAuthClient) {
-      const auth = await requireAuthClient(request);
-      if (!auth.ok) {
-        const err = auth as RequireAuthClientError;
-        return err.response;
-      }
-      const ok = auth as RequireAuthClientOk;
-      filter = { ...filter, ownerId: ok.userId };
+    if (authClientOk) {
+      filter = { ...filter, ownerId: authClientOk.userId };
     }
     const result = await updateOneDocument({ db, collection, filter, update, options: body.options });
 

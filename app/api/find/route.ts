@@ -15,11 +15,17 @@ export async function POST(
     if (methodValidation) return methodValidation;
 
     const useAuthClient = String(process.env.RELACIONALDB_AUTH_CLIENT || "false").toLowerCase() === "true";
-    if (!useAuthClient) {
-      const authResult = await authToken(request, "find");
-      if (authResult !== null) {
-        return authResult;
-      }
+    let authClientOk: RequireAuthClientOk | null = null;
+    let authClientErr: NextResponse<ErrorResponse> | null = null;
+    if (useAuthClient) {
+      const rc = await requireAuthClient(request);
+      if (rc.ok) authClientOk = rc as RequireAuthClientOk;
+      else authClientErr = (rc as RequireAuthClientError).response as NextResponse<ErrorResponse>;
+    }
+
+    const systemAuth = await authToken(request, "find");
+    if (systemAuth !== null && !authClientOk) {
+      return authClientErr ?? systemAuth;
     }
 
     // Parsear el cuerpo de la solicitud
@@ -63,14 +69,8 @@ export async function POST(
     }
 
     let query = body.query || {};
-    if (useAuthClient) {
-      const auth = await requireAuthClient(request);
-      if (!auth.ok) {
-        const err = auth as RequireAuthClientError;
-        return err.response as NextResponse<ErrorResponse>;
-      }
-      const ok = auth as RequireAuthClientOk;
-      query = { ...query, ownerId: ok.userId };
+    if (authClientOk) {
+      query = { ...query, ownerId: authClientOk.userId };
     }
     const result = await findDocuments(body.db, body.collection, query, body.options || {});
 
