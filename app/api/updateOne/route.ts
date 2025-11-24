@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { authToken } from "../../../middleware/authToken";
 import { updateOneDocument } from "../../../services/crudService";
 import type { UpdateOneRequest, ApiResponse, UpdateOneResponse } from "../../../types/mongo";
+import { requireAuthClient, type RequireAuthClientOk, type RequireAuthClientError } from "../../../lib/auth";
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {
   try {
-    // Autenticación
-    const authResult = await authToken(request, "update");
-    if (authResult !== null) {
-      return authResult; // Retorna el error de autenticación
+    const useAuthClient = String(process.env.RELACIONALDB_AUTH_CLIENT || "false").toLowerCase() === "true";
+    if (!useAuthClient) {
+      const authResult = await authToken(request, "update");
+      if (authResult !== null) {
+        return authResult;
+      }
     }
 
     // Parsear el cuerpo de la petición
@@ -27,7 +30,8 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     }
 
     // Validar campos requeridos
-    const { db, collection, filter, update } = body;
+    const { db, collection, update } = body;
+    let filter = body.filter;
     if (!db || !collection || !filter || !update) {
       return NextResponse.json(
         {
@@ -39,8 +43,16 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Actualizar el documento
-    const result = await updateOneDocument(body);
+    if (useAuthClient) {
+      const auth = await requireAuthClient(request);
+      if (!auth.ok) {
+        const err = auth as RequireAuthClientError;
+        return err.response;
+      }
+      const ok = auth as RequireAuthClientOk;
+      filter = { ...filter, ownerId: ok.userId };
+    }
+    const result = await updateOneDocument({ db, collection, filter, update, options: body.options });
 
     return NextResponse.json(
       {

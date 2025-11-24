@@ -4,6 +4,7 @@ import { authToken } from "../../../middleware/authToken";
 import { validateJsonBodyMiddleware } from "../../../lib/requestValidation";
 import { z, ZodError } from "zod";
 import { ApiResponse } from "../../../types/mongo.d";
+import { requireAuthClient, type RequireAuthClientOk, type RequireAuthClientError } from "../../../lib/auth";
 
 const insertOneRequestSchema = z.object({
   db: z
@@ -26,10 +27,12 @@ const insertOneRequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    // Validate authentication
-  const authResult = await authToken(req, "register");
-    if (authResult !== null) {
-      return authResult;
+    const useAuthClient = String(process.env.RELACIONALDB_AUTH_CLIENT || "false").toLowerCase() === "true";
+    if (!useAuthClient) {
+      const authResult = await authToken(req, "register");
+      if (authResult !== null) {
+        return authResult;
+      }
     }
 
     // Validate JSON body using our new utility
@@ -40,8 +43,17 @@ export async function POST(req: NextRequest) {
 
     // Validate the request body using Zod
     const validatedBody = insertOneRequestSchema.parse(bodyValidation);
-    const { db, collection, document } = validatedBody;
-
+    const { db, collection } = validatedBody;
+    let document = validatedBody.document;
+    if (useAuthClient) {
+      const auth = await requireAuthClient(req);
+      if (!auth.ok) {
+        const err = auth as RequireAuthClientError;
+        return err.response;
+      }
+      const ok = auth as RequireAuthClientOk;
+      document = { ...document, ownerId: ok.userId };
+    }
     const result = await insertOneWithDynamicDB(db, collection, document);
 
     return NextResponse.json<ApiResponse>(

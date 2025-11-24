@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { deleteOneDocument } from '../../../services/crudService';
 import { authToken } from '../../../middleware/authToken';
 import type { DeleteOneRequest, ApiResponse, DeleteOneResponse } from '../../../types/mongo';
+import { requireAuthClient, type RequireAuthClientOk, type RequireAuthClientError } from '../../../lib/auth';
 
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    // Autenticación
-    const authResult = await authToken(request, "delete");
-    if (authResult !== null) {
-      return authResult;
+    const useAuthClient = String(process.env.RELACIONALDB_AUTH_CLIENT || 'false').toLowerCase() === 'true';
+    if (!useAuthClient) {
+      const authResult = await authToken(request, 'delete');
+      if (authResult !== null) {
+        return authResult;
+      }
     }
 
     // Parsear el cuerpo de la solicitud
@@ -27,7 +30,8 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     }
 
     // Validar campos requeridos
-    const { db, collection, filter } = body;
+    const { db, collection } = body;
+    let filter = body.filter;
     if (!db || !collection || !filter) {
       return NextResponse.json(
         {
@@ -39,8 +43,16 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Ejecutar la eliminación
-    const result = await deleteOneDocument(body);
+    if (useAuthClient) {
+      const auth = await requireAuthClient(request);
+      if (!auth.ok) {
+        const err = auth as RequireAuthClientError;
+        return err.response;
+      }
+      const ok = auth as RequireAuthClientOk;
+      filter = { ...filter, ownerId: ok.userId };
+    }
+    const result = await deleteOneDocument({ db, collection, filter, options: body.options });
 
     return NextResponse.json(
       {

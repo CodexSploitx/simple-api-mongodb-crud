@@ -4,6 +4,7 @@ import { findOneDocument } from "../../../services/crudService";
 import { validateHttpMethod } from "../../../lib/httpMethodValidator";
 import { validateForQuery } from "../../../lib/mongo";
 import { FindOneRequest, FindOneResponse, ErrorResponse, SuccessResponse } from "../../../types/mongo";
+import { requireAuthClient, type RequireAuthClientOk, type RequireAuthClientError } from "../../../lib/auth";
 
 export async function POST(
   request: NextRequest
@@ -13,10 +14,12 @@ export async function POST(
     const methodValidation = validateHttpMethod(request, "/api/findOne");
     if (methodValidation) return methodValidation;
 
-    // Autenticación
-    const authResult = await authToken(request, "find");
-    if (authResult !== null) {
-      return authResult;
+    const useAuthClient = String(process.env.RELACIONALDB_AUTH_CLIENT || "false").toLowerCase() === "true";
+    if (!useAuthClient) {
+      const authResult = await authToken(request, "find");
+      if (authResult !== null) {
+        return authResult;
+      }
     }
 
     // Parsear el cuerpo de la solicitud
@@ -59,12 +62,17 @@ export async function POST(
       );
     }
 
-    // Ejecutar consulta
-    const document = await findOneDocument(
-      body.db,
-      body.collection,
-      body.query
-    );
+    let query = body.query;
+    if (useAuthClient) {
+      const auth = await requireAuthClient(request);
+      if (!auth.ok) {
+        const err = auth as RequireAuthClientError;
+        return err.response as NextResponse<ErrorResponse>;
+      }
+      const ok = auth as RequireAuthClientOk;
+      query = { ...query, ownerId: ok.userId };
+    }
+    const document = await findOneDocument(body.db, body.collection, query);
 
     const result: FindOneResponse = {
       document,

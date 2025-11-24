@@ -5,6 +5,7 @@ import { validateForQuery } from "@/lib/mongo";
 import { validateHttpMethod, getRoutePattern } from "@/lib/httpMethodValidator";
 import type { ErrorResponse, SuccessResponse } from "@/types/mongo";
 import { Document } from "mongodb";
+import { requireAuthClient, type RequireAuthClientOk, type RequireAuthClientError } from "@/lib/auth";
 
 interface RouteParams {
   params: Promise<{
@@ -37,10 +38,12 @@ export async function GET(
       return methodValidation;
     }
 
-    // 2. Verificar autenticación
-  const authResult = await authToken(req, "find");
-    if (authResult !== null) {
-      return authResult as NextResponse<ErrorResponse>;
+    const useAuthClient = String(process.env.RELACIONALDB_AUTH_CLIENT || "false").toLowerCase() === "true";
+    if (!useAuthClient) {
+      const authResult = await authToken(req, "find");
+      if (authResult !== null) {
+        return authResult as NextResponse<ErrorResponse>;
+      }
     }
 
     // 3. Await params antes de usar sus propiedades
@@ -106,7 +109,15 @@ export async function GET(
     const sortOrder = searchParams.get('sortOrder') === 'desc' ? -1 : 1;
     const sort = { [sortField]: sortOrder };
 
-    // 10. Obtener documentos con paginación
+    if (useAuthClient) {
+      const auth = await requireAuthClient(req);
+      if (!auth.ok) {
+        const err = auth as RequireAuthClientError;
+        return err.response as NextResponse<ErrorResponse>;
+      }
+      const ok = auth as RequireAuthClientOk;
+      query.ownerId = ok.userId;
+    }
     const result = await findDocuments(decodedDb, decodedCollection, query, {
       limit,
       skip,
