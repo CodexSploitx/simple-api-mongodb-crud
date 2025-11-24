@@ -51,6 +51,15 @@ _A **Modular and Secure** API for MongoDB, built with **Next.js**, designed to p
   </tr>
 </table>
 
+<div align="center">
+
+### 🆕 **New Feature: Auth Client**
+
+**A complete, production-ready Authentication API is now included!**
+Register, Login, Refresh Tokens, Rate Limiting, and Secure Cookies out of the box.
+
+</div>
+
 ---
 
 ## 📦 **Installation**
@@ -111,7 +120,34 @@ Authorization: Bearer your_secret_token
 
 ---
 
-## 🛄 **Creating Databases and Collections**
+## �️ **Auth Client (New!)**
+
+<div align="center">
+  <img width="60" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Key.png" alt="🔑" />
+</div>
+
+We have implemented a **dedicated Authentication API** at `/api/auth-client` to handle user management for your applications.
+
+**Features:**
+
+- ✅ **User Registration & Login**
+- ✅ **JWT Access Tokens** (15 min) & **Refresh Tokens** (7 days)
+- ✅ **HttpOnly Secure Cookies**
+- ✅ **Rate Limiting** (Brute-force protection)
+- ✅ **Strict Password Validation**
+
+**Endpoints:**
+
+- `POST /api/auth-client/register`
+- `POST /api/auth-client/login`
+- `POST /api/auth-client/refresh`
+- `POST /api/auth-client/logout`
+
+> 📘 **Read the full documentation here:** [app/api/auth-client/README.md](app/api/auth-client/README.md)
+
+---
+
+## �🛄 **Creating Databases and Collections**
 
 <div align="center">
   <img width="60" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Card File Box.png" alt="🪄" />
