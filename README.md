@@ -160,6 +160,55 @@ We've also created an **Admin Dashboard** at `/auth-client` with a simple and op
 
 ---
 
+## 🔒 Auth Client Access Mode (RLS)
+
+When `RELACIONALDB_AUTH_CLIENT=true` in `.env.local`, users registered via **Auth Client** can consume all CRUD endpoints under `app/api` with **row-level security (RLS)**:
+
+```env
+RELACIONALDB_AUTH_CLIENT=true
+AUTH_CLIENT_DB=authclient
+AUTH_CLIENT_COLLECTION=users
+JWT_SECRET=your-long-random-secret
+```
+
+- Required header: `Authorization: Bearer <accessToken>`
+- The `accessToken` is obtained from `POST /api/auth-client/register` or `POST /api/auth-client/login` and is signed with `JWT_SECRET`.
+- Reads (`/api/find`, `/api/findOne`, `GET /api/:db/:collection`) are filtered by `ownerId = <userId>`.
+- Inserts (`/api/insertOne`) automatically add `ownerId = <userId>`.
+- Updates (`/api/updateOne`) and deletes (`/api/deleteOne`) enforce `filter.ownerId = <userId>`.
+- If `RELACIONALDB_AUTH_CLIENT=false`, Auth Client users do NOT have permission to consume the CRUD APIs.
+
+### Recommended flow
+
+1. Register or log in:
+   - `POST /api/auth-client/register`
+   - `POST /api/auth-client/login`
+   - Store the `accessToken` from the response.
+
+2. Use CRUD with the `accessToken`:
+
+```bash
+curl -X POST "http://localhost:3000/api/find" \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: application/json" \
+  -d '{"db":"myDatabase","collection":"users","query":{"status":"active"}}'
+
+curl -X POST "http://localhost:3000/api/insertOne" \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: application/json" \
+  -d '{"db":"myDatabase","collection":"users","document":{"key":"value"}}'
+```
+
+3. Renew access token:
+   - `POST /api/auth-client/refresh` returns a new `accessToken` if you have the `refreshToken` httpOnly cookie.
+
+### Internal implementation (references)
+
+- Access JWT generation/verification: `lib/auth.ts:25-39,41-65`
+- Insert with `ownerId`: `app/api/insertOne/route.ts:27-85`
+- Search with `ownerId` filter: `app/api/find/route.ts:16-78`, `app/api/findOne/route.ts:16-85`, `app/api/[db]/[collection]/route.ts:40-144`
+- Update/Delete with `ownerId`: `app/api/updateOne/route.ts:6-67`, `app/api/deleteOne/route.ts:6-65`
+
 ## �🛄 **Creating Databases and Collections**
 
 <div align="center">
