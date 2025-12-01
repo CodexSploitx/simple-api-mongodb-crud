@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import type { UserRecord } from "../types";
 import UserTable from "./UserTable";
+import RegistrationChart from "./RegistrationChart";
 
 type Props = {
   users: UserRecord[];
@@ -15,6 +16,7 @@ type Props = {
 };
 
 export default function UsersPanel({ users, filteredUsers, searchQuery, onSearchChange, error, loading, onUpdate }: Props) {
+  const [range, setRange] = useState<"1d" | "7d" | "30d">("7d");
   return (
     <div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -22,13 +24,29 @@ export default function UsersPanel({ users, filteredUsers, searchQuery, onSearch
           <div className="text-sm text-[var(--text-muted)] mb-1">Total Users</div>
           <div className="text-2xl font-bold text-[var(--text)]">{searchQuery ? `${filteredUsers.length} / ${users.length}` : users.length}</div>
         </div>
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
-          <div className="text-sm text-[var(--text-muted)] mb-1">Database</div>
-          <div className="text-lg font-medium text-[var(--text)]">{process.env.NEXT_PUBLIC_AUTH_CLIENT_DB || "authclient"}</div>
-        </div>
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
-          <div className="text-sm text-[var(--text-muted)] mb-1">Collection</div>
-          <div className="text-lg font-medium text-[var(--text)]">{process.env.NEXT_PUBLIC_AUTH_CLIENT_COLLECTION || "users"}</div>
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4 md:col-span-2">
+          <RegistrationChart
+            users={users}
+            range={range}
+            headerRight={
+              <div className="flex items-center gap-2">
+                {(["1d", "7d", "30d"] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setRange(opt)}
+                    className={`px-2 py-1 rounded-md text-xs border transition-colors ${
+                      range === opt
+                        ? "bg-[var(--surface)] border-[var(--primary)] text-[var(--text)]"
+                        : "bg-[var(--surface)] border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--card)]"
+                    }`}
+                    title={opt === "1d" ? "Último día" : opt === "7d" ? "Última semana" : "Último mes"}
+                  >
+                    {opt === "1d" ? "1D" : opt === "7d" ? "7D" : "1M"}
+                  </button>
+                ))}
+              </div>
+            }
+          />
         </div>
       </div>
 
@@ -61,4 +79,3 @@ export default function UsersPanel({ users, filteredUsers, searchQuery, onSearch
     </div>
   );
 }
-
