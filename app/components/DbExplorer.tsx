@@ -86,13 +86,15 @@ export default function DbExplorer({ onViewCollection, onSelectDb }: DbExplorerP
       </div>
 
       {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className={`p-4 rounded-lg border ${cardClasses} animate-pulse`}>
-              <div className="h-4 w-1/2 bg-[var(--border)]/60 rounded mb-3" />
-              <div className="h-3 w-1/3 bg-[var(--border)]/60 rounded" />
-            </div>
-          ))}
+        <div className={`rounded-lg border ${cardClasses}`}>
+          <ul className="divide-y divide-[var(--border)]">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <li key={i} className="px-4 py-3 animate-pulse">
+                <div className="h-4 w-40 bg-[var(--border)]/60 rounded mb-2" />
+                <div className="h-3 w-24 bg-[var(--border)]/60 rounded" />
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -113,40 +115,36 @@ export default function DbExplorer({ onViewCollection, onSelectDb }: DbExplorerP
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {databases.map((db) => {
-              const collections = collectionsByDb[db];
-              const isBusy = loadingDb === db;
-              return (
-                <li key={db} className={`rounded-lg border ${cardClasses}`}>
-                  <div className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-[var(--text)]">{db}</span>
-                        {collections && (
-                          <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full border bg-[var(--surface)] text-[var(--text-muted)]">
-                            {collections.length} collections
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => connectDb(db)}
-                          className={`px-3 py-1 rounded-md text-xs ${buttonClasses.primary}`}
-                          disabled={isBusy}
-                          title={collections ? "Connect" : "Load collections"}
-                        >
-                          {isBusy ? "Loading..." : "Connect"}
-                        </button>
-                      </div>
+          <div className={`rounded-lg border ${cardClasses} p-4`}>
+            <ul className="divide-y divide-[var(--border)]">
+              {databases.map((db) => {
+                const collections = collectionsByDb[db];
+                const isBusy = loadingDb === db;
+                return (
+                  <li key={db} className="px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-[var(--text)]">{db}</span>
+                      {collections && (
+                        <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full border bg-[var(--surface)] text-[var(--text-muted)]">
+                          {collections.length} collections
+                        </span>
+                      )}
                     </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                    <button
+                      onClick={() => connectDb(db)}
+                      className={`px-3 py-1 rounded-md text-xs ${buttonClasses.primary}`}
+                      disabled={isBusy}
+                      title={collections ? "Connect" : "Load collections"}
+                    >
+                      {isBusy ? "Loading..." : "Connect"}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
 
-          <div className={`rounded-lg border ${cardClasses} p-4 min-h-[180px]`}>
+          <div className={`rounded-lg border ${cardClasses} p-4`}>
             {expandedDb ? (
               <div>
                 <div className="flex items-center justify-between mb-2">

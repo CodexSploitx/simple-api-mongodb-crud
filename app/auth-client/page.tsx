@@ -2,9 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import type { UserRecord } from "./types";
-import { getSession, clearSession, fetchUsers } from "./utils/adminAuth";
+import { checkAccess, fetchUsers } from "./utils/adminAuth";
 import { getThemeStyles } from "@/styles/colors";
-import LoginForm from "./components/LoginForm";
 import UserTable from "./components/UserTable";
 
 export default function AuthClientAdminPage() {
@@ -14,8 +13,8 @@ export default function AuthClientAdminPage() {
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleLogout = useCallback(() => {
-    clearSession();
+  const handleLogout = useCallback(async () => {
+    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch {}
     setIsAuthenticated(false);
     setUsers([]);
   }, []);
@@ -37,19 +36,19 @@ export default function AuthClientAdminPage() {
   }, [handleLogout]);
 
   useEffect(() => {
-    const session = getSession();
-    if (session) {
-      setIsAuthenticated(true);
-      loadUsers();
-    } else {
-      setLoading(false);
-    }
+    (async () => {
+      const { allowed } = await checkAccess();
+      if (allowed) {
+        setIsAuthenticated(true);
+        setLoading(false);
+        loadUsers();
+      } else {
+        setLoading(false);
+      }
+    })();
   }, [loadUsers]);
 
-  const handleLoginSuccess = () => {
-    setIsAuthenticated(true);
-    loadUsers();
-  };
+  
 
   // Filter users based on search query
   const filteredUsers = users.filter(user => {
@@ -62,10 +61,24 @@ export default function AuthClientAdminPage() {
     );
   });
 
+  if (loading) {
+    return (
+      <div style={getThemeStyles(true) as React.CSSProperties} className="min-h-screen bg-[var(--background)] grid place-items-center p-6">
+        <div className="max-w-md w-full bg-[var(--card)] border border-[var(--border)] rounded-lg p-6 text-center">
+          <h1 className="text-xl font-semibold text-[var(--text)] mb-2">Cargando</h1>
+          <p className="text-sm text-[var(--text-muted)]">Verificando acceso...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
-      <div style={getThemeStyles(true) as React.CSSProperties}>
-        <LoginForm onLoginSuccess={handleLoginSuccess} />
+      <div style={getThemeStyles(true) as React.CSSProperties} className="min-h-screen bg-[var(--background)] grid place-items-center p-6">
+        <div className="max-w-md w-full bg-[var(--card)] border border-[var(--border)] rounded-lg p-6 text-center">
+          <h1 className="text-xl font-semibold text-[var(--text)] mb-2">Acceso no autorizado</h1>
+          <p className="text-sm text-[var(--text-muted)]">Necesitas permiso de &quot;Auth-Client Access&quot; para gestionar usuarios.</p>
+        </div>
       </div>
     );
   }

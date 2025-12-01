@@ -8,7 +8,7 @@ const CreateUserForm: React.FC = () => {
   const [isPending, startTransition] = useTransition();
   const [createMsg, setCreateMsg] = useState<string | null>(null);
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
-  const [permissions, setPermissions] = useState<Permissions>({ register: true, delete: false, update: false, find: true });
+  const [permissions, setPermissions] = useState<Permissions>({ register: true, delete: false, update: false, find: true, authClientAccess: false });
   const [role, setRole] = useState<'admin'|'user'>('user');
 
   const toggle = (key: keyof Permissions) => {
@@ -59,9 +59,9 @@ const CreateUserForm: React.FC = () => {
             const v = e.target.value as 'admin'|'user';
             setRole(v);
             if (v === 'admin') {
-              setPermissions({ register: true, delete: true, update: true, find: true });
+              setPermissions({ register: true, delete: true, update: true, find: true, authClientAccess: true });
             } else {
-              setPermissions({ register: true, delete: false, update: false, find: true });
+              setPermissions({ register: true, delete: false, update: false, find: true, authClientAccess: false });
             }
           }}
         >
@@ -76,6 +76,7 @@ const CreateUserForm: React.FC = () => {
           <button type="button" disabled={role==='admin'} title={role==='admin' ? 'Admin has all permissions' : undefined} onClick={() => toggle("delete")} className={`px-3 py-2 rounded-lg text-sm border disabled:opacity-50 disabled:cursor-not-allowed ${permissions.delete ? buttonClasses.danger : buttonClasses.secondary}`}>Delete</button>
           <button type="button" disabled={role==='admin'} title={role==='admin' ? 'Admin has all permissions' : undefined} onClick={() => toggle("update")} className={`px-3 py-2 rounded-lg text-sm border disabled:opacity-50 disabled:cursor-not-allowed ${permissions.update ? 'bg-[var(--warning)] text-black border-[var(--warning)]' : buttonClasses.secondary}`}>Update</button>
           <button type="button" disabled={role==='admin'} title={role==='admin' ? 'Admin has all permissions' : undefined} onClick={() => toggle("find")} className={`px-3 py-2 rounded-lg text-sm border disabled:opacity-50 disabled:cursor-not-allowed ${permissions.find ? buttonClasses.primary : buttonClasses.secondary}`}>Search/Read</button>
+          <button type="button" disabled={role==='admin'} title={role==='admin' ? 'Admin has all permissions' : undefined} onClick={() => toggle("authClientAccess")} className={`px-3 py-2 rounded-lg text-sm border disabled:opacity-50 disabled:cursor-not-allowed ${permissions.authClientAccess ? buttonClasses.primary : buttonClasses.secondary}`}>Auth-Client Access</button>
         </div>
         <p className="text-xs text-[var(--text-muted)]">{role==='admin' ? 'Admin role enables all permissions and cannot be modified.' : 'Colors indicate risk level.'}</p>
       </div>

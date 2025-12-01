@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import type { ButtonClasses } from "../types";
-import { CircleStackIcon, UserIcon, BoltIcon, PlusIcon, SunIcon, MoonIcon, ArrowRightStartOnRectangleIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import { CircleStackIcon, UserIcon, BoltIcon, PlusIcon, SunIcon, MoonIcon, ArrowRightStartOnRectangleIcon, SparklesIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 
 interface HeaderProps {
   darkMode: boolean;
@@ -83,7 +83,7 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 flex justify-center">
+        <div className="flex-1 flex justify-center gap-6">
           <button
             onClick={() => { window.location.href = "/api-rest"; }}
             className={`group px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200 ${buttonClasses.primary}`}
@@ -94,6 +94,18 @@ const Header: React.FC<HeaderProps> = ({
               <span>REST API</span>
             </span>
           </button>
+          
+          <button
+            onClick={() => { window.location.href = "/auth-client"; }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${buttonClasses.secondary}`}
+            title="Auth Client"
+          >
+            <span className="flex items-center space-x-2">
+              <ShieldCheckIcon className="w-4 h-4 text-[var(--text)]" />
+              <span>Auth Client</span>
+            </span>
+          </button>
+
         </div>
         <div className="flex items-center space-x-3 relative">
           {displayUserName && (
@@ -193,7 +205,7 @@ const Header: React.FC<HeaderProps> = ({
                   const target = onLogoutRedirectUrl || '/auth/sing-in';
                   window.location.href = target;
                 }
-              } catch (e) {
+              } catch {
                 // Silenciar errores en UI
               }
             }}

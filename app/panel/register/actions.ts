@@ -1,20 +1,23 @@
 'use server';
 
-import { insertOneWithDynamicDB, updateOneDocument, deleteOneDocument } from '@/services/crudService';
+import { insertOneWithDynamicDB, updateOneDocument, deleteOneDocument, findOneDocument } from '@/services/crudService';
+import type { Document as MongoDoc } from 'mongodb';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { headers } from 'next/headers';
 import type { InsertOneResult, Document } from 'mongodb';
 
 export type Role = 'admin' | 'user';
-export type PermissionKey = 'register' | 'delete' | 'update' | 'find';
+export type PermissionKey = 'register' | 'delete' | 'update' | 'find' | 'authClientAccess';
 export type Permissions = Record<PermissionKey, boolean>;
 
 type RateRecord = { attempts: number; windowStart: number; lockedUntil?: number };
 
-declare global {
-  var __adminRateStore: Map<string, RateRecord> | undefined;
-}
+const getRateStore = (): Map<string, RateRecord> => {
+  const g = globalThis as unknown as { __adminRateStore?: Map<string, RateRecord> };
+  if (!g.__adminRateStore) g.__adminRateStore = new Map<string, RateRecord>();
+  return g.__adminRateStore;
+};
 
 export async function verifyAdmin(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   // Rate limiting y lockout en memoria (para producción usar Redis/KV compartido)
@@ -30,8 +33,7 @@ export async function verifyAdmin(formData: FormData): Promise<{ ok: boolean; er
   const RATE_LIMIT_JITTER_BASE_MS = numFromEnv('RATE_LIMIT_JITTER_BASE_MS', 80, 0); // 80ms base por defecto
   const RATE_LIMIT_JITTER_VARIATION_MS = numFromEnv('RATE_LIMIT_JITTER_VARIATION_MS', 70, 0); // hasta +70ms por defecto
 
-  const rateStore: Map<string, RateRecord> = globalThis.__adminRateStore ?? new Map<string, RateRecord>();
-  globalThis.__adminRateStore = rateStore;
+  const rateStore = getRateStore();
 
   const getClientKey = async (): Promise<string> => {
     try {
@@ -158,11 +160,12 @@ export async function createUserAction(formData: FormData): Promise<{ ok: boolea
       delete: Boolean(formData.get('perm_delete')),
       update: Boolean(formData.get('perm_update')),
       find: Boolean(formData.get('perm_find')),
+      authClientAccess: Boolean(formData.get('perm_authClientAccess')),
     };
 
     // Si es admin, por defecto habilitar todas las operaciones
     const permissions: Permissions = role === 'admin'
-      ? { register: true, delete: true, update: true, find: true }
+      ? { register: true, delete: true, update: true, find: true, authClientAccess: true }
       : selectedPermissions;
 
     const doc: Document = {
@@ -275,5 +278,39 @@ export async function generateUserTokenAction(params: { id: string }): Promise<{
     return { ok: false, error: 'User not found or token not added' };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : 'Unknown error occurred while generating a token' };
+  }
+}
+
+export async function findUserAction(params: { id?: string; username?: string; email?: string }): Promise<{ ok: boolean; error?: string; user?: { _id: string; username: string; email: string; role: Role; permissions: Permissions } }> {
+  const { USERS_DB, USERS_COLLECTION } = resolveUsersEnv();
+  if (!USERS_DB || !USERS_COLLECTION) return { ok: false, error: 'Missing users DB/collection config' };
+
+  const filter: Record<string, unknown> = {};
+  if (params.id) filter._id = params.id;
+  else if (params.username) filter.username = params.username.trim();
+  else if (params.email) filter.email = params.email.trim();
+  else return { ok: false, error: 'Provide id, username or email' };
+
+  try {
+    const doc = await findOneDocument(USERS_DB, USERS_COLLECTION, filter);
+    if (!doc) return { ok: false, error: 'User not found' };
+    const d = doc as MongoDoc & { username?: string; email?: string; role?: Role; permissions?: Partial<Permissions> };
+    const permissions: Permissions = {
+      register: Boolean(d.permissions?.register),
+      delete: Boolean(d.permissions?.delete),
+      update: Boolean(d.permissions?.update),
+      find: Boolean(d.permissions?.find),
+      authClientAccess: Boolean(d.permissions?.authClientAccess),
+    };
+    const user = {
+      _id: String((d as unknown as { _id: unknown })._id),
+      username: String(d.username ?? ''),
+      email: String(d.email ?? ''),
+      role: (d.role === 'admin' ? 'admin' : 'user') as Role,
+      permissions,
+    };
+    return { ok: true, user };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

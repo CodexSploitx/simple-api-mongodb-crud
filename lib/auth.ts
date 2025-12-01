@@ -70,3 +70,38 @@ export async function requireAuthClient(req: NextRequest): Promise<RequireAuthCl
   }
   return { ok: true, userId: payload.userId };
 }
+
+export async function requireAuthClientAdmin(req: NextRequest): Promise<RequireAuthClientOk | RequireAuthClientError> {
+  const jwtCookie = req.cookies.get("auth_token")?.value || "";
+  if (!jwtCookie) {
+    return { ok: false, response: NextResponse.json({ error: "No autenticado" }, { status: 401 }) };
+  }
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    return { ok: false, response: NextResponse.json({ error: "Configuración faltante" }, { status: 500 }) };
+  }
+  try {
+    const payload = jwt.verify(jwtCookie, secret) as { _id?: string } | string;
+    const userId = typeof payload === "string" ? undefined : payload?._id;
+    if (!userId || !ObjectId.isValid(userId)) {
+      return { ok: false, response: NextResponse.json({ error: "Token inválido" }, { status: 401 }) };
+    }
+    const USERS_DB = process.env.USERS_DB || process.env.USER_DB || process.env.AUTH_DB_USERS || process.env.AUTH_DB || "";
+    const USERS_COLLECTION = process.env.USERS_COLLECTION || process.env.USER_COLLECTION || process.env.AUTH_DB_COLLECTION || process.env.AUTH_COLLECTION || "";
+    if (!USERS_DB || !USERS_COLLECTION) {
+      return { ok: false, response: NextResponse.json({ error: "Configuración de usuarios faltante" }, { status: 500 }) };
+    }
+    const col = await getCollection(USERS_DB, USERS_COLLECTION);
+    const user = await col.findOne({ _id: new ObjectId(userId) });
+    if (!user) {
+      return { ok: false, response: NextResponse.json({ error: "Usuario no encontrado" }, { status: 401 }) };
+    }
+    const allowed = Boolean(user.permissions?.authClientAccess === true);
+    if (!allowed) {
+      return { ok: false, response: NextResponse.json({ error: "No autorizado" }, { status: 403 }) };
+    }
+    return { ok: true, userId: String(user._id) };
+  } catch  {
+    return { ok: false, response: NextResponse.json({ error: "Token inválido" }, { status: 401 }) };
+  }
+}

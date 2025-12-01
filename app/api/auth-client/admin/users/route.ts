@@ -1,42 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { getCollection } from "@/lib/mongo";
 import { corsHeaders } from "@/lib/cors";
-import jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_AUTH || "default-admin-secret";
+import { requireAuthClientAdmin } from "@/lib/auth";
 const DB_NAME = process.env.AUTH_CLIENT_DB || "authclient";
 const COLLECTION_NAME = process.env.AUTH_CLIENT_COLLECTION || "users";
 
-function verifyAdminToken(authHeader: string | null): boolean {
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return false;
-  }
+// No longer using header token; rely on app auth cookie and permission
 
-  const token = authHeader.substring(7);
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { admin?: boolean };
-    return decoded.admin === true;
-  } catch {
-    return false;
-  }
-}
-
-export async function OPTIONS(request: Request) {
+export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get("origin");
   return NextResponse.json({}, { headers: corsHeaders(origin) });
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const origin = request.headers.get("origin");
   const headers = corsHeaders(origin);
 
   try {
-    // Verify admin token
-    const authHeader = request.headers.get("authorization");
-    if (!verifyAdminToken(authHeader)) {
+    const rc = await requireAuthClientAdmin(request as unknown as import("next/server").NextRequest);
+    if (!rc.ok) {
+      const r = rc as { response: NextResponse };
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401, headers }
+        { status: r.response.status, headers }
       );
     }
 

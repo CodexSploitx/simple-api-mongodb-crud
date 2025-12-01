@@ -79,6 +79,31 @@ This API is hardened against common web vulnerabilities:
 
 ---
 
+### 5. Change Password
+
+**POST** `/change-password`
+
+- **Headers**: `Authorization: Bearer <accessToken>`
+- **Body**: `{ "currentPassword": "...", "newPassword": "..." }`
+- **Returns**: `200 OK` with new `accessToken`. Sets new `refreshToken` cookie.
+- **Security**:
+  - Authenticated users only (valid Access Token required).
+  - Rate limited (5/min).
+  - Increments `tokenVersion` to revoke all previous tokens.
+
+Usage example:
+
+```bash
+curl -X POST "http://localhost:3000/api/auth-client/change-password" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"currentPassword":"oldPass123!","newPassword":"NewPass123!"}'
+```
+
+Notes:
+- After a successful change, all previously issued tokens are invalid. Use the returned `accessToken` and the new `refreshToken` cookie for subsequent requests.
+- Password must follow complexity rules listed above.
+
 ## 🛠️ Configuration (.env.local)
 
 ```env
