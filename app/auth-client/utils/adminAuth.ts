@@ -1,6 +1,6 @@
 "use client";
 
-import type { GetUsersResponse, DeleteUserResponse, RevokeTokensResponse, ChangePasswordResponse } from "../types";
+import type { GetUsersResponse, DeleteUserResponse, RevokeTokensResponse, ChangePasswordResponse, AdminLoginResponse } from "../types";
 
 export async function checkAccess(): Promise<{ allowed: boolean; error?: string }> {
   try {
@@ -43,4 +43,24 @@ export async function changeUserPassword(userId: string, newPassword: string): P
     body: JSON.stringify({ action: "changePassword", newPassword }),
   });
   return await res.json();
+}
+
+export async function adminLogin(username: string, password: string): Promise<AdminLoginResponse> {
+  try {
+    const res = await fetch(`/api/auth-client/admin/login`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    return await res.json();
+  } catch {
+    return { success: false, error: "Network error" };
+  }
+}
+
+export function saveSession(token: string): void {
+  try {
+    sessionStorage.setItem("authClientAdminToken", token);
+  } catch {}
 }

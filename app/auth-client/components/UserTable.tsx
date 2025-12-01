@@ -107,27 +107,34 @@ export default function UserTable({ users, onUpdate }: UserTableProps) {
                 <td className="py-3 px-4 text-sm text-[var(--text-muted)]">{formatDate(user.createdAt)}</td>
                 <td className="py-3 px-4 text-sm text-[var(--text-muted)]">{user.tokenVersion}</td>
                 <td className="py-3 px-4">
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2 bg-[var(--card)] p-2 rounded-md">
                     <button
                       onClick={() => handleChangePassword(user)}
-                      className="px-3 py-1 text-xs rounded-md bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white transition-colors"
+                      className="cursor-pointer bg-[var(--surface)] relative inline-flex items-center justify-center gap-2 rounded-md text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:pointer-events-none disabled:opacity-50 hover:bg-[var(--border)] text-[var(--text-muted)] h-8 px-3 hover:text-[var(--warning)]"
                       title="Change Password"
                     >
                       Password
                     </button>
                     <button
                       onClick={() => handleRevokeTokens(user)}
-                      className="px-3 py-1 text-xs rounded-md bg-[var(--warning)] hover:bg-amber-600 text-black transition-colors"
+                      className="cursor-pointer bg-[var(--surface)] relative inline-flex items-center justify-center gap-2 rounded-md text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:pointer-events-none disabled:opacity-50 hover:bg-[var(--border)] text-[var(--text-muted)] h-8 px-3 hover:text-[var(--success)]"
                       title="Revoke Tokens"
                     >
                       Revoke
                     </button>
                     <button
                       onClick={() => handleDelete(user)}
-                      className="px-3 py-1 text-xs rounded-md bg-[var(--danger)] hover:bg-red-600 text-white transition-colors"
+                      className="cursor-pointer bg-[var(--surface)] relative inline-flex items-center justify-center gap-2 rounded-md text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:pointer-events-none disabled:opacity-50 hover:bg-[var(--border)] text-[var(--text-muted)] h-8 px-3 hover:text-[var(--danger)]"
                       title="Delete User"
                     >
                       Delete
+                    </button>
+                    <button
+                      onClick={() => alert('Logs próximamente')}
+                      className="cursor-pointer bg-[var(--surface)] relative inline-flex items-center justify-center gap-2 rounded-md text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:pointer-events-none disabled:opacity-50 hover:bg-[var(--border)] text-[var(--text-muted)] h-8 px-3 hover:text-[var(--primary)]"
+                      title="Logs"
+                    >
+                      Logs
                     </button>
                   </div>
                 </td>

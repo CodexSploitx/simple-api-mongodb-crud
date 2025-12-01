@@ -4,7 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import type { UserRecord } from "./types";
 import { checkAccess, fetchUsers } from "./utils/adminAuth";
 import { getThemeStyles } from "@/styles/colors";
-import UserTable from "./components/UserTable";
+import UsersPanel from "./components/UsersPanel";
+import { Cog6ToothIcon, UsersIcon, ArrowPathIcon, PowerIcon } from "@heroicons/react/24/outline";
+import STPMPanel from "./components/STPMPanel";
 
 export default function AuthClientAdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -12,6 +14,12 @@ export default function AuthClientAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"users" | "stpm">("users");
+
+  const tabs: { id: "users" | "stpm"; label: string; section: string; icon: React.ReactNode }[] = [
+    { id: "users", label: "Users", section: "Manage", icon: <UsersIcon className="w-4 h-4" /> },
+    { id: "stpm", label: "STPM", section: "Configuration", icon: <Cog6ToothIcon className="w-4 h-4" /> },
+  ];
 
   const handleLogout = useCallback(async () => {
     try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch {}
@@ -65,8 +73,8 @@ export default function AuthClientAdminPage() {
     return (
       <div style={getThemeStyles(true) as React.CSSProperties} className="min-h-screen bg-[var(--background)] grid place-items-center p-6">
         <div className="max-w-md w-full bg-[var(--card)] border border-[var(--border)] rounded-lg p-6 text-center">
-          <h1 className="text-xl font-semibold text-[var(--text)] mb-2">Cargando</h1>
-          <p className="text-sm text-[var(--text-muted)]">Verificando acceso...</p>
+          <h1 className="text-xl font-semibold text-[var(--text)] mb-2">Loading</h1>
+          <p className="text-sm text-[var(--text-muted)]">Checking access...</p>
         </div>
       </div>
     );
@@ -76,8 +84,8 @@ export default function AuthClientAdminPage() {
     return (
       <div style={getThemeStyles(true) as React.CSSProperties} className="min-h-screen bg-[var(--background)] grid place-items-center p-6">
         <div className="max-w-md w-full bg-[var(--card)] border border-[var(--border)] rounded-lg p-6 text-center">
-          <h1 className="text-xl font-semibold text-[var(--text)] mb-2">Acceso no autorizado</h1>
-          <p className="text-sm text-[var(--text-muted)]">Necesitas permiso de &quot;Auth-Client Access&quot; para gestionar usuarios.</p>
+          <h1 className="text-xl font-semibold text-[var(--text)] mb-2">Unauthorized Access</h1>
+          <p className="text-sm text-[var(--text-muted)]">You need &quot;Auth-Client Access&quot; permission to manage users.</p>
         </div>
       </div>
     );
@@ -85,79 +93,69 @@ export default function AuthClientAdminPage() {
 
   return (
     <div style={getThemeStyles(true) as React.CSSProperties} className="min-h-screen bg-[var(--background)]">
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-[var(--text)] mb-1">Auth Client Admin</h1>
-            <p className="text-[var(--text-muted)]">Manage your application users</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={loadUsers}
-              className="px-4 py-2 rounded-md bg-[var(--surface)] hover:bg-[var(--border)] text-[var(--text)] border border-[var(--border)] transition-colors"
-              disabled={loading}
-            >
-              {loading ? "Refreshing..." : "Refresh"}
-            </button>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 rounded-md bg-[var(--danger)] hover:bg-red-600 text-white transition-colors"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
-            <div className="text-sm text-[var(--text-muted)] mb-1">Total Users</div>
-            <div className="text-2xl font-bold text-[var(--text)]">
-              {searchQuery ? `${filteredUsers.length} / ${users.length}` : users.length}
+      <div className="relative">
+        <aside className="fixed left-0 top-0 h-screen w-64">
+          <div className="h-full bg-[var(--card)] border-r border-[var(--border)] rounded-none p-3">
+            <div className="px-2 py-2 text-xs font-semibold text-[var(--text-muted)]">Manage</div>
+            {tabs.filter(t => t.section === "Manage").map(t => (
+              <button key={t.id} onClick={() => setActiveTab(t.id)} className={`w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm mb-1 border ${activeTab===t.id?"bg-[var(--surface)] border-[var(--primary)]":"bg-transparent border-transparent hover:bg-[var(--surface)]"} text-[var(--text)]`}>
+                {t.icon}
+                <span>{t.label}</span>
+              </button>
+            ))}
+            <div className="px-2 pt-3 pb-2 text-xs font-semibold text-[var(--text-muted)]">Configuration</div>
+            {tabs.filter(t => t.section === "Configuration").map(t => (
+              <button key={t.id} onClick={() => setActiveTab(t.id)} className={`w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm mb-1 border ${activeTab===t.id?"bg-[var(--surface)] border-[var(--primary)]":"bg-transparent border-transparent hover:bg-[var(--surface)]"} text-[var(--text)]`}>
+                {t.icon}
+                <span>{t.label}</span>
+              </button>
+            ))}
+            <div className="mt-4 flex items-center gap-2">
+              <button onClick={loadUsers} className="flex-1 px-3 py-2 rounded-md bg-[var(--surface)] hover:bg-[var(--border)] text-[var(--text)] border border-[var(--border)] text-sm flex items-center justify-center gap-2" disabled={loading}>
+                <ArrowPathIcon className="w-4 h-4" />
+                <span>{loading ? "Updating" : "Update"}</span>
+              </button>
+              <button onClick={handleLogout} className="px-3 py-2 rounded-md bg-[var(--danger)] hover:bg-red-600 text-white text-sm flex items-center gap-2">
+                <PowerIcon className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
             </div>
           </div>
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
-            <div className="text-sm text-[var(--text-muted)] mb-1">Database</div>
-            <div className="text-lg font-medium text-[var(--text)]">{process.env.NEXT_PUBLIC_AUTH_CLIENT_DB || "authclient"}</div>
-          </div>
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
-            <div className="text-sm text-[var(--text-muted)] mb-1">Collection</div>
-            <div className="text-lg font-medium text-[var(--text)]">{process.env.NEXT_PUBLIC_AUTH_CLIENT_COLLECTION || "users"}</div>
-          </div>
-        </div>
+        </aside>
 
-        {/* User Table */}
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
-          <div className="p-4 border-b border-[var(--border)] flex items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-[var(--text)]">Users</h2>
-            <div className="flex-1 max-w-md">
-              <input
-                type="text"
-                placeholder="Search by email, username, or ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 rounded-md bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] outline-none text-sm"
+        <main className="ml-64 p-6">
+            <div className="mb-6">
+              {(() => {
+                const headers = {
+                  users: { title: "Auth Client", subtitle: "User management panel" },
+                  stpm: { title: "STPM", subtitle: "STPM email notifications" },
+                } as const;
+                const { title, subtitle } = headers[activeTab];
+                return (
+                  <>
+                    <h1 className="text-3xl font-bold text-[var(--text)]">{title}</h1>
+                    <p className="text-[var(--text-muted)]">{subtitle}</p>
+                  </>
+                );
+              })()}
+            </div>
+            
+            {/* ADMIN USERS PANEL */}
+            {activeTab === "users" && (
+              <UsersPanel
+                users={users}
+                filteredUsers={filteredUsers}
+                searchQuery={searchQuery}
+                onSearchChange={(v) => setSearchQuery(v)}
+                error={error}
+                loading={loading}
+                onUpdate={loadUsers}
               />
-            </div>
-          </div>
-
-          {error && (
-            <div className="p-4 bg-red-500/10 border-b border-red-500/20 text-red-500">
-              {error}
-            </div>
-          )}
-
-          {loading ? (
-            <div className="p-8 text-center text-[var(--text-muted)]">Loading users...</div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="p-8 text-center text-[var(--text-muted)]">
-              {searchQuery ? "No users match your search" : "No users found"}
-            </div>
-          ) : (
-            <UserTable users={filteredUsers} onUpdate={loadUsers} />
-          )}
-        </div>
+            )}
+            
+            {/* STPM PANEL */}
+            {activeTab === "stpm" && <STPMPanel />}
+        </main>
       </div>
     </div>
   );
