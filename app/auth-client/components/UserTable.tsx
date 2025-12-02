@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import type { UserRecord } from "../types";
+import type { UserRecord, DeleteUserResponse } from "../types";
 import { deleteUser, revokeUserTokens } from "../utils/adminAuth";
 import ConfirmDialog from "./ConfirmDialog";
 import PasswordChangeModal from "./PasswordChangeModal";
+import DeleteUserModal from "./DeleteUserModal";
 
 interface UserTableProps {
   users: UserRecord[];
@@ -36,22 +37,13 @@ export default function UserTable({ users, onUpdate }: UserTableProps) {
     username: "",
   });
 
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    user: UserRecord | null;
+  }>({ isOpen: false, user: null });
+
   const handleDelete = (user: UserRecord) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: "Delete User",
-      message: `Are you sure you want to delete user "${user.username}"? This action cannot be undone.`,
-      variant: "danger",
-      onConfirm: async () => {
-        const result = await deleteUser(user._id);
-        if (result.success) {
-          onUpdate();
-        } else {
-          alert(result.error || "Failed to delete user");
-        }
-        setConfirmDialog({ ...confirmDialog, isOpen: false });
-      },
-    });
+    setDeleteModal({ isOpen: true, user });
   };
 
   const handleRevokeTokens = (user: UserRecord) => {
@@ -161,6 +153,23 @@ export default function UserTable({ users, onUpdate }: UserTableProps) {
         onSuccess={() => {
           setPasswordModal({ ...passwordModal, isOpen: false });
           onUpdate();
+        }}
+      />
+
+      <DeleteUserModal
+        isOpen={deleteModal.isOpen}
+        user={deleteModal.user}
+        onClose={() => setDeleteModal({ isOpen: false, user: null })}
+        onConfirm={async (options) => {
+          if (!deleteModal.user) return Promise.resolve<DeleteUserResponse>({ success: false, error: "No user" });
+          return await deleteUser(deleteModal.user._id, options);
+        }}
+        onResult={(res) => {
+          if (res?.success) {
+            onUpdate();
+          } else if (res?.error) {
+            alert(res.error);
+          }
         }}
       />
     </>

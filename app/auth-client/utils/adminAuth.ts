@@ -20,8 +20,21 @@ export async function fetchUsers(): Promise<GetUsersResponse> {
   return await res.json();
 }
 
-export async function deleteUser(userId: string): Promise<DeleteUserResponse> {
-  const res = await fetch(`/api/auth-client/admin/users/${userId}`, { method: "DELETE", credentials: "include" });
+export async function deleteUser(
+  userId: string,
+  options?: {
+    mode?: "delete_all" | "delete_some" | "keep_all_delete_only_auth";
+    targets?: Array<{ db: string; collections: string[]; fields: ("ownerId" | "userId")[] }>;
+    archive?: boolean;
+    fields?: { ownerId: boolean; userId: boolean };
+  }
+): Promise<DeleteUserResponse> {
+  const init: RequestInit = { method: "DELETE", credentials: "include" };
+  if (options) {
+    init.headers = { "Content-Type": "application/json" };
+    init.body = JSON.stringify(options);
+  }
+  const res = await fetch(`/api/auth-client/admin/users/${userId}`, init);
   return await res.json();
 }
 

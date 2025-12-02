@@ -46,6 +46,9 @@ export interface DeleteUserResponse {
   success: boolean;
   message?: string;
   error?: string;
+  deletedByCollection?: { db: string; collection: string; deletedCount: number }[];
+  totalDeleted?: number;
+  archived?: boolean;
 }
 
 export interface RevokeTokensResponse {

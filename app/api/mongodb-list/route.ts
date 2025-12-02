@@ -16,6 +16,8 @@ export async function GET() {
   // Also exclude the auth users DB from env if provided (line 22 reference)
   const authUsersDb = process.env.AUTH_DB_USERS || "";
   if (authUsersDb) excludeNames.add(authUsersDb);
+  const authClientDb = process.env.AUTH_CLIENT_DB || "authclient";
+  if (authClientDb) excludeNames.add(authClientDb);
 
   let client: MongoClient | null = null;
   try {
