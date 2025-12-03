@@ -12,8 +12,36 @@ export async function isCorsEnabled(): Promise<boolean> {
   }
 }
 
-export function corsHeaders(origin: string | null, enabled: boolean) {
-  const allowed = (process.env.CORS_AUTH_CLIENT || "").split(",").map((s) => s.trim()).filter(Boolean);
+export async function getAllowedCorsOrigins(): Promise<string[]> {
+  try {
+    const dbName = process.env.AUTH_CLIENT_DB || "authclient";
+    const colName = process.env.AUTH_CLIENT_SETTINGS || "settings";
+    const col = await getCollection(dbName, colName);
+    const cfg = await col.findOne({ key: "access_mode" });
+    const arr = cfg?.cors_allowed_origins;
+    if (Array.isArray(arr)) return arr.map((s: unknown) => String(s)).filter(Boolean);
+  } catch {}
+  const envVal = process.env.CORS_AUTH_CLIENT || "";
+  return envVal.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+export function normalizeOrigin(s: string): string {
+  try {
+    const u = new URL(s);
+    return u.origin.toLowerCase();
+  } catch {
+    return String(s).replace(/\/+$/, "").toLowerCase();
+  }
+}
+
+export function originAllowed(origin: string | null, allowed: string[]): boolean {
+  if (!origin) return true; // same-origin or non-browser clients; do not enforce here
+  const o = normalizeOrigin(origin);
+  const set = new Set(allowed.map((a) => normalizeOrigin(a)));
+  return set.size === 0 || set.has(o);
+}
+
+export function corsHeaders(origin: string | null, enabled: boolean, allowed: string[]) {
   const headers: Record<string, string> = {
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
@@ -24,7 +52,7 @@ export function corsHeaders(origin: string | null, enabled: boolean) {
   if (!enabled) {
     if (origin) headers["Access-Control-Allow-Origin"] = origin;
   } else {
-    if (origin && (allowed.length === 0 || allowed.includes(origin))) {
+    if (origin && originAllowed(origin, allowed)) {
       headers["Access-Control-Allow-Origin"] = origin;
     }
   }

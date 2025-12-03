@@ -3,7 +3,6 @@
 ## Urgente (indispensable ahora)
 - Endurecer secretos: exigir `JWT_AUTH_CLIENT` y `STMP_ENCRYPTION_KEY` sin valores por defecto.
 - Unificar secretos admin: usar `JWT_AUTH_CLIENT_ADMIN` de forma consistente para login y verificación.
-- CORS estricto: whitelistar `CORS_AUTH_CLIENT` y añadir `Vary: Origin`; nunca `*` con credenciales.
 - Magic link robusto: token con `crypto.randomBytes(32)` + `jti` y expiración firme; sanitización HTML al enviar.
 - OTP seguro: guardar `hash(code)` (HMAC-SHA256) y crear índice TTL sobre `expiresAt` en `STMP_OTP`.
 - Rotación de refresh: en `/api/auth-client/refresh` emitir nuevo `refreshToken`, setear cookie y preparar detección de reuse.
@@ -45,7 +44,6 @@
 
 ## Referencias de Código (guía de dónde tocar)
 - Secretos JWT: `lib/auth.ts:7`, `lib/auth.ts:92`, `app/api/auth-client/admin/login/route.ts:6`.
-- CORS: `lib/cors.ts:1-20`.
 - Magic link: `app/api/auth-client/magic-link/send/route.ts:58-83`, `consume/route.ts:37-58`.
 - OTP: `app/api/stmp/templates/route.ts`, `app/api/auth-client/reset-password/request/route.ts:44-49`, `reauth/request/route.ts:45-50`, `change-email/start/route.ts:67-72`, `request-new/route.ts:48-53`.
 - Refresh: `app/api/auth-client/refresh/route.ts:58-64`.

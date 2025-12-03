@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { corsHeaders, isCorsEnabled } from "@/lib/cors";
+import { corsHeaders, isCorsEnabled, getAllowedCorsOrigins } from "@/lib/cors";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getCollection } from "@/lib/mongo";
 import { getStmpEnv } from "@/lib/stmp";
@@ -10,13 +10,15 @@ const RequestSchema = z.object({ email: z.string().email() });
 export async function OPTIONS(request: Request) {
   const origin = request.headers.get("origin");
   const enabled = await isCorsEnabled();
-  return NextResponse.json({}, { headers: corsHeaders(origin, enabled) });
+  const allowed = await getAllowedCorsOrigins();
+  return NextResponse.json({}, { headers: corsHeaders(origin, enabled, allowed) });
 }
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
   const enabled = await isCorsEnabled();
-  const headers = corsHeaders(origin, enabled);
+  const allowed = await getAllowedCorsOrigins();
+  const headers = corsHeaders(origin, enabled, allowed);
 
   try {
     const ip = request.headers.get("x-forwarded-for") || "unknown";

@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getCollection } from "@/lib/mongo";
 import { MongoClient } from "mongodb";
-import { corsHeaders, isCorsEnabled } from "@/lib/cors";
+import { corsHeaders, isCorsEnabled, getAllowedCorsOrigins, originAllowed } from "@/lib/cors";
 import { hashPassword } from "@/lib/auth";
 import { requireAuthClientAdmin } from "@/lib/auth";
 import { ObjectId } from "mongodb";
@@ -14,7 +14,8 @@ const COLLECTION_NAME = process.env.AUTH_CLIENT_COLLECTION || "users";
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get("origin");
   const enabled = await isCorsEnabled();
-  return NextResponse.json({}, { headers: corsHeaders(origin, enabled) });
+  const allowed = await getAllowedCorsOrigins();
+  return NextResponse.json({}, { headers: corsHeaders(origin, enabled, allowed) });
 }
 
 export async function DELETE(
@@ -23,7 +24,11 @@ export async function DELETE(
 ) {
   const origin = request.headers.get("origin");
   const enabled = await isCorsEnabled();
-  const headers = corsHeaders(origin, enabled);
+  const allowed = await getAllowedCorsOrigins();
+  const headers = corsHeaders(origin, enabled, allowed);
+  if (enabled && !originAllowed(origin, allowed)) {
+    return NextResponse.json({ success: false, error: "Origin not allowed" }, { status: 403, headers });
+  }
 
   try {
     const rc = await requireAuthClientAdmin(request);
@@ -203,7 +208,11 @@ export async function PATCH(
 ) {
   const origin = request.headers.get("origin");
   const enabled = await isCorsEnabled();
-  const headers = corsHeaders(origin, enabled);
+  const allowed = await getAllowedCorsOrigins();
+  const headers = corsHeaders(origin, enabled, allowed);
+  if (enabled && !originAllowed(origin, allowed)) {
+    return NextResponse.json({ success: false, error: "Origin not allowed" }, { status: 403, headers });
+  }
 
   try {
     const rc = await requireAuthClientAdmin(request);

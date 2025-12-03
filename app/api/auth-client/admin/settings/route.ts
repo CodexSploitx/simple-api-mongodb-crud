@@ -6,14 +6,14 @@ import { z } from "zod";
 const DB_NAME = process.env.AUTH_CLIENT_DB || "authclient";
 const SETTINGS_COLLECTION = process.env.AUTH_CLIENT_SETTINGS || "settings";
 
-const SettingsSchema = z.object({ relacionaldb_auth_client: z.boolean().optional(), cors_enabled: z.boolean().optional() });
+const SettingsSchema = z.object({ relacionaldb_auth_client: z.boolean().optional(), cors_enabled: z.boolean().optional(), cors_allowed_origins: z.array(z.string()).optional() });
 
 export async function GET(req: NextRequest) {
   const auth = await requireAuthClientAdmin(req);
   if (!auth.ok) return (auth as RequireAuthClientError).response;
   const col = await getCollection(DB_NAME, SETTINGS_COLLECTION);
   const doc = await col.findOne({ key: "access_mode" });
-  const data = { relacionaldb_auth_client: Boolean(doc?.relacionaldb_auth_client === true), cors_enabled: Boolean(doc?.cors_enabled === true) };
+  const data = { relacionaldb_auth_client: Boolean(doc?.relacionaldb_auth_client === true), cors_enabled: Boolean(doc?.cors_enabled === true), cors_allowed_origins: Array.isArray(doc?.cors_allowed_origins) ? doc!.cors_allowed_origins : [] };
   return NextResponse.json({ success: true, data });
 }
 
@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
   const $set: Record<string, unknown> = { key: "access_mode", updatedAt: new Date().toISOString() };
   if (typeof parsed.data.relacionaldb_auth_client === "boolean") $set.relacionaldb_auth_client = parsed.data.relacionaldb_auth_client;
   if (typeof parsed.data.cors_enabled === "boolean") $set.cors_enabled = parsed.data.cors_enabled;
+  if (Array.isArray(parsed.data.cors_allowed_origins)) $set.cors_allowed_origins = parsed.data.cors_allowed_origins;
   await col.updateOne(
     { key: "access_mode" },
     { $set, $setOnInsert: { createdAt: new Date().toISOString() } },

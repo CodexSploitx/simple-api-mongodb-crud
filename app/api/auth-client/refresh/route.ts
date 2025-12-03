@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/mongo";
 import { verifyToken, generateAccessToken } from "@/lib/auth";
-import { corsHeaders, isCorsEnabled } from "@/lib/cors";
+import { corsHeaders, isCorsEnabled, getAllowedCorsOrigins, originAllowed } from "@/lib/cors";
 import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 
@@ -11,13 +11,18 @@ const COLLECTION_NAME = process.env.AUTH_CLIENT_COLLECTION || "users";
 export async function OPTIONS(request: Request) {
   const origin = request.headers.get("origin");
   const enabled = await isCorsEnabled();
-  return NextResponse.json({}, { headers: corsHeaders(origin, enabled) });
+  const allowed = await getAllowedCorsOrigins();
+  return NextResponse.json({}, { headers: corsHeaders(origin, enabled, allowed) });
 }
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
   const enabled = await isCorsEnabled();
-  const headers = corsHeaders(origin, enabled);
+  const allowed = await getAllowedCorsOrigins();
+  const headers = corsHeaders(origin, enabled, allowed);
+  if (enabled && !originAllowed(origin, allowed)) {
+    return NextResponse.json({ error: "Origin not allowed" }, { status: 403, headers });
+  }
 
   try {
     const cookieStore = await cookies();
