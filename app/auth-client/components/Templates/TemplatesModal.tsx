@@ -37,8 +37,7 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
   const lineRef = useRef<HTMLDivElement | null>(null);
   const [editorModalOpen, setEditorModalOpen] = useState<boolean>(false);
   const lineRefFull = useRef<HTMLDivElement | null>(null);
-  interface UserToken { tokenHash: string; createdAt?: string; revoked?: boolean }
-  interface UserRecord { _id: string; username: string; email: string; role: string; permissions?: { register?: boolean; delete?: boolean; update?: boolean; find?: boolean; authClientAccess?: boolean }; apiTokens?: UserToken[] }
+  interface UserRecord { _id: string; username: string; email: string; role: string }
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const isDefault = useMemo(() => name === "__default__", [name]);
@@ -74,8 +73,6 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
       username: "Example User",
       email: "user@example.com",
       role: "user",
-      permissions: { register: true, delete: false, update: true, find: true, authClientAccess: false },
-      apiTokens: [{ tokenHash: "FAKE_TOKEN_HASH_123456" }],
     };
     setUsers([fake]);
     setSelectedUserId(String(fake._id));
@@ -122,24 +119,48 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
     }
   };
 
-  const placeholders = useMemo(() => [
-    { label: "{{ .EmailUSer }}", value: "{{ .EmailUSer }}", title: "Email of the user" },
-    { label: "{{ .UserName }}", value: "{{ .UserName }}", title: "Name of the user" },
-    { label: "{{ .CodeConfirmation }}", value: "{{ .CodeConfirmation }}", title: "6-digit OTP code" },
-    { label: "{{ .SiteURL }}", value: "{{ .SiteURL }}", title: "Site URL" },
-    { label: "{{ .Token }}", value: "{{ .Token }}", title: "Access token of the user" },
-    { label: "{{ ._id }}", value: "{{ ._id }}", title: "ID of the user" },
-    { label: "{{ .permissions.register }}", value: "{{ .permissions.register }}", title: "Permission register" },
-    { label: "{{ .permissions.delete }}", value: "{{ .permissions.delete }}", title: "Permission delete" },
-    { label: "{{ .permissions.update }}", value: "{{ .permissions.update }}", title: "Permission update" },
-    { label: "{{ .permissions.find }}", value: "{{ .permissions.find }}", title: "Permission find" },
-    { label: "{{ .permissions.authClientAccess }}", value: "{{ .permissions.authClientAccess }}", title: "Permission authClientAccess" },
-  ], []);
+  const placeholders = useMemo(() => {
+    const common = [
+      { label: "{{ .EmailUSer }}", value: "{{ .EmailUSer }}", title: "Email of the user" },
+      { label: "{{ .UserName }}", value: "{{ .UserName }}", title: "Name of the user" },
+      { label: "{{ .SiteURL }}", value: "{{ .SiteURL }}", title: "Site URL" },
+      { label: "{{ ._id }}", value: "{{ ._id }}", title: "ID of the user" },
+    ];
+    const otpVars = [
+      { label: "{{ .CodeConfirmation }}", value: "{{ .CodeConfirmation }}", title: "6-digit OTP code" },
+    ];
+    const inviteVars = [
+      { label: "{{ .Token }}", value: "{{ .Token }}", title: "Invite token" },
+      { label: "{{ .PromoCode }}", value: "{{ .PromoCode }}", title: "Promo code for invitee" },
+      { label: "{{ .RewardTitle }}", value: "{{ .RewardTitle }}", title: "Reward title" },
+      { label: "{{ .RewardText }}", value: "{{ .RewardText }}", title: "Reward description" },
+    ];
+    const magicLinkVars = [
+      { label: "{{ .Token }}", value: "{{ .Token }}", title: "Magic link token" },
+    ];
+    if (eventKey === "invite_user") return [...common, ...inviteVars];
+    if (eventKey === "magic_link") return [...common, ...magicLinkVars];
+    if (eventKey === "confirm_sign_up" || eventKey === "reset_password" || eventKey === "reauthentication" || eventKey === "change_email") return [...common, ...otpVars];
+    return common;
+  }, [eventKey]);
 
-  const essentialValues = useMemo(() => new Set(["{{ .EmailUSer }}", "{{ .UserName }}", "{{ .CodeConfirmation }}", "{{ .SiteURL }}", "{{ .Token }}"]), []);
+  const essentialValues = useMemo(() => {
+    if (eventKey === "invite_user") {
+      return new Set(["{{ .EmailUSer }}", "{{ .UserName }}", "{{ .Token }}", "{{ .SiteURL }}"]);
+    }
+    if (eventKey === "magic_link") {
+      return new Set(["{{ .EmailUSer }}", "{{ .UserName }}", "{{ .Token }}", "{{ .SiteURL }}"]);
+    }
+    return new Set(["{{ .EmailUSer }}", "{{ .UserName }}", "{{ .CodeConfirmation }}", "{{ .SiteURL }}"]);
+  }, [eventKey]);
   const essentials = useMemo(() => placeholders.filter(p => essentialValues.has(p.value)), [placeholders, essentialValues]);
   const extras = useMemo(() => placeholders.filter(p => !essentialValues.has(p.value)), [placeholders, essentialValues]);
-  const subjectAllowed = useMemo(() => placeholders.filter(p => p.value === "{{ .UserName }}" || p.value === "{{ .CodeConfirmation }}"), [placeholders]);
+  const subjectAllowed = useMemo(() => {
+    if (eventKey === "invite_user") {
+      return placeholders.filter(p => p.value === "{{ .UserName }}" || p.value === "{{ .RewardTitle }}" || p.value === "{{ .PromoCode }}");
+    }
+    return placeholders.filter(p => p.value === "{{ .UserName }}" || p.value === "{{ .CodeConfirmation }}");
+  }, [placeholders, eventKey]);
 
   const insertPlaceholder = (ph: string, target: "subject"|"body") => {
     if (target === "subject") {
@@ -201,23 +222,23 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
     const siteUrl = (typeof window !== 'undefined' ? window.location.origin : '') || (process.env.API_BASE_URL || "");
     const user = users.find(u => String(u._id) === selectedUserId);
     let out = body;
-    out = out.replaceAll("{{ .CodeConfirmation }}", code);
     out = out.replaceAll("{{ .SiteURL }}", siteUrl);
+    if (eventKey !== "invite_user") {
+      out = out.replaceAll("{{ .CodeConfirmation }}", code);
+    }
     const email = user?.email || "user@example.com";
     const username = user?.username || "Example User";
     out = out.replaceAll("{{ .EmailUSer }}", email);
     out = out.replaceAll("{{ .UserName }}", username);
     if (user) {
       out = out.replaceAll("{{ ._id }}", String(user._id));
-      out = out.replaceAll("{{ .permissions.register }}", String(Boolean(user.permissions?.register)));
-      out = out.replaceAll("{{ .permissions.delete }}", String(Boolean(user.permissions?.delete)));
-      out = out.replaceAll("{{ .permissions.update }}", String(Boolean(user.permissions?.update)));
-      out = out.replaceAll("{{ .permissions.find }}", String(Boolean(user.permissions?.find)));
-      out = out.replaceAll("{{ .permissions.authClientAccess }}", String(Boolean(user.permissions?.authClientAccess)));
-      const token = "";
+    }
+    if (eventKey === "invite_user") {
+      const token = "INVITE_TOKEN_EXAMPLE";
       out = out.replaceAll("{{ .Token }}", token);
-    } else {
-      out = out.replaceAll("{{ .Token }}", "");
+      out = out.replaceAll("{{ .PromoCode }}", "WELCOME10");
+      out = out.replaceAll("{{ .RewardTitle }}", "Welcome Bonus");
+      out = out.replaceAll("{{ .RewardText }}", "Get 10% off on your first purchase.");
     }
     return sanitizeHtml(out);
   };
@@ -317,7 +338,7 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
                   </div>
                 </div>
               <div className="mb-2">
-                <div className="text-xs text-[var(--text-muted)]">Se usan datos ficticios; no se exponen datos reales.</div>
+                <div className="text-xs text-[var(--text-muted)]">Fictitious data are used; no real data are exposed.</div>
               </div>
               <div className="rounded-lg border border-[var(--border)] overflow-hidden">
                 <div className="flex items-center justify-between px-3 py-2 bg-[var(--card)] border-b border-[var(--border)]">

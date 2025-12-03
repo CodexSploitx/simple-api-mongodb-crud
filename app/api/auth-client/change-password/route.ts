@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/mongo";
 import { ChangePasswordSchema } from "@/lib/validations";
-import { verifyPassword, hashPassword, generateAccessToken, generateRefreshToken, verifyToken } from "@/lib/auth";
+import { verifyPassword, hashPassword, generateAccessToken, generateRefreshToken, verifyToken, verifyReauthToken } from "@/lib/auth";
+import { getStmpEnv } from "@/lib/stmp";
 import { corsHeaders } from "@/lib/cors";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { cookies } from "next/headers";
@@ -50,6 +51,22 @@ export async function POST(request: Request) {
     }
 
     const { currentPassword, newPassword } = validation.data;
+
+    const { db, collection: stmpConfig } = getStmpEnv();
+    const cfgCol = await getCollection(db, stmpConfig);
+    const cfg = await cfgCol.findOne({ key: "default" });
+    const needReauth = Boolean(cfg?.requireReauthChangePassword);
+    if (needReauth) {
+      const rt = request.headers.get("x-reauth-token") || "";
+      const rp = rt ? verifyReauthToken(rt) : null;
+      const okReauth = Boolean(rp && rp.userId === payload.userId && (!rp.action || rp.action === "change_password"));
+      if (!okReauth) {
+        return NextResponse.json(
+          { error: "Reauthentication required" },
+          { status: 401, headers }
+        );
+      }
+    }
 
     const collection = await getCollection(DB_NAME, COLLECTION_NAME);
     const user = await collection.findOne({ _id: new ObjectId(payload.userId) });
@@ -120,4 +137,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

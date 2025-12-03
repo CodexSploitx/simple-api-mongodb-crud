@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/mongo";
 import { LoginSchema } from "@/lib/validations";
 import { verifyPassword, generateAccessToken, generateRefreshToken } from "@/lib/auth";
+import { getStmpEnv } from "@/lib/stmp";
 import { corsHeaders } from "@/lib/cors";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { cookies } from "next/headers";
@@ -57,6 +58,20 @@ export async function POST(request: Request) {
         { status: 401, headers }
       );
     }
+
+    // Check configuration: require email verification to login
+    try {
+      const { db: stmpDb, collection: stmpConfig } = getStmpEnv();
+      const cfgCol = await getCollection(stmpDb, stmpConfig);
+      const cfgDoc = await cfgCol.findOne({ key: "default" });
+      const requireEmailVerificationLogin = Boolean(cfgDoc?.requireEmailVerificationLogin);
+      if (requireEmailVerificationLogin && user.verifiEmail !== true) {
+        return NextResponse.json(
+          { error: "Email not verified" },
+          { status: 403, headers }
+        );
+      }
+    } catch {}
 
     // Generate tokens
     const tokenVersion = user.tokenVersion || 0;

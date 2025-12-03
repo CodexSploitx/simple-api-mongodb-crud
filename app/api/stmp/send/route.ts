@@ -53,8 +53,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Users configuration missing" }, { status: 500 });
   }
 
-  const { db, templates } = getStmpEnv();
+  const { db, templates, collection: stmpConfig } = getStmpEnv();
   const templatesCol = await getCollection(db, templates);
+  const cfgCol = await getCollection(db, stmpConfig);
+  const cfg = await cfgCol.findOne({ key: "default" });
   const activeTemplate = await templatesCol.findOne({ eventKey, active: true });
   if (!activeTemplate) {
     return NextResponse.json({ success: false, error: "No active template for event" }, { status: 404 });
@@ -74,7 +76,8 @@ export async function POST(req: NextRequest) {
     const otpCol = await getCollection(db, otpColName);
     code = String(Math.floor(100000 + Math.random() * 900000));
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
-    await otpCol.insertOne({ userId: new ObjectId(userId), code, eventKey, used: false, createdAt: new Date(), expiresAt });
+    const maxAttempts = Number(cfg?.otpMaxAttempts || 5);
+    await otpCol.insertOne({ userId: new ObjectId(userId), code, eventKey, used: false, attempts: 0, maxAttempts, createdAt: new Date(), expiresAt });
   }
 
   const replace = (s: string): string => {
@@ -82,14 +85,6 @@ export async function POST(req: NextRequest) {
     out = out.replaceAll("{{ .EmailUSer }}", String(user.email || ""));
     out = out.replaceAll("{{ .UserName }}", String(user.username || ""));
     out = out.replaceAll("{{ ._id }}", String(user._id));
-    // role variable removed
-    out = out.replaceAll("{{ .permissions.register }}", String(Boolean(user.permissions?.register)));
-    out = out.replaceAll("{{ .permissions.delete }}", String(Boolean(user.permissions?.delete)));
-    out = out.replaceAll("{{ .permissions.update }}", String(Boolean(user.permissions?.update)));
-    out = out.replaceAll("{{ .permissions.find }}", String(Boolean(user.permissions?.find)));
-    out = out.replaceAll("{{ .permissions.authClientAccess }}", String(Boolean(user.permissions?.authClientAccess)));
-    // token hash variable removed
-    out = out.replaceAll("{{ .Token }}", "");
     out = out.replaceAll("{{ .SiteURL }}", siteUrl);
     if (code) out = out.replaceAll("{{ .CodeConfirmation }}", code);
     return out;

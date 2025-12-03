@@ -5,6 +5,9 @@ import SMTPSettingsModal from "./SMTP/SMTPSettingsModal";
 import TemplatesModal from "./Templates/TemplatesModal";
 import TemplatesList from "./Templates/TemplatesList";
 import STMPEvents from "@/app/auth-client/components/STMPEvents";
+import STMPConfiguration from "@/app/auth-client/components/STMPConfiguration";
+import STMPOtp from "@/app/auth-client/components/STMPOtp";
+import STMInvite from "@/app/auth-client/components/STMInvite";
 
 export default function STMPPanel() {
   const [senderEmail, setSenderEmail] = useState("");
@@ -20,7 +23,7 @@ export default function STMPPanel() {
   const [credentialsSet, setCredentialsSet] = useState(false);
   const [showSmtpModal, setShowSmtpModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<"smtp"|"templates"|"events">("smtp");
+  const [activeTab, setActiveTab] = useState<"smtp"|"templates"|"events"|"configuration"|"otp"|"invite">("smtp");
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,6 +97,9 @@ export default function STMPPanel() {
           <button onClick={()=>setActiveTab("templates")} className={`px-2 py-1 text-sm ${activeTab==='templates' ? 'text-[var(--text)] border-b-2 border-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>Templates</button>
           <button onClick={()=>setActiveTab("smtp")} className={`px-2 py-1 text-sm ${activeTab==='smtp' ? 'text-[var(--text)] border-b-2 border-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>SMTP Settings</button>
           <button onClick={()=>setActiveTab("events")} className={`px-2 py-1 text-sm ${activeTab==='events' ? 'text-[var(--text)] border-b-2 border-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>Events</button>
+          <button onClick={()=>setActiveTab("configuration")} className={`px-2 py-1 text-sm ${activeTab==='configuration' ? 'text-[var(--text)] border-b-2 border-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>Configuration</button>
+          <button onClick={()=>setActiveTab("otp")} className={`px-2 py-1 text-sm ${activeTab==='otp' ? 'text-[var(--text)] border-b-2 border-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>OTP</button>
+          <button onClick={()=>setActiveTab("invite")} className={`px-2 py-1 text-sm ${activeTab==='invite' ? 'text-[var(--text)] border-b-2 border-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>Invite</button>
         </div>
       </div>
       {activeTab === "smtp" && (
@@ -148,6 +154,15 @@ export default function STMPPanel() {
       )}
       {activeTab === "events" && (
         <STMPEvents />
+      )}
+      {activeTab === "configuration" && (
+        <STMPConfiguration />
+      )}
+      {activeTab === "otp" && (
+        <STMPOtp />
+      )}
+      {activeTab === "invite" && (
+        <STMInvite />
       )}
       <SMTPSettingsModal isOpen={showSmtpModal} onClose={()=>setShowSmtpModal(false)} />
       <TemplatesModal isOpen={showTemplatesModal} onClose={()=>setShowTemplatesModal(false)} initialEventKey={selectedEvent || null} />

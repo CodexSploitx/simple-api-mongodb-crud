@@ -124,8 +124,8 @@ function getDefaultTemplate(eventKey: string): { subject: string; body: string }
       const inner = [
         `<p>Hello <strong>{{ .UserName }}</strong>,</p>`,
         `<p>We received a request to change your email to <strong>{{ .EmailUSer }}</strong>.</p>`,
-        `<p>Confirm this change using the button:</p>`,
-        `<div style="text-align:center;"><a href="{{ .SiteURL }}/auth/change-email?token={{ .Token }}" class="button" target="_blank">Confirm Change</a></div>`
+        `<p>Your confirmation code is:</p>`,
+        `<div class="code-box">{{ .CodeConfirmation }}</div>`
       ].join("\n");
       return { subject, body: baseTemplate("Email Change", inner) };
     }

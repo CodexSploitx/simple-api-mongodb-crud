@@ -7,6 +7,7 @@ import { ObjectId } from "mongodb";
 const JWT_SECRET = process.env.JWT_SECRET || "default-secret-key";
 const ACCESS_TOKEN_EXPIRES_IN = "15m";
 const REFRESH_TOKEN_EXPIRES_IN = "7d";
+const REAUTH_TOKEN_EXPIRES_IN = "5m";
 
 export interface TokenPayload {
   userId: string;
@@ -36,6 +37,18 @@ export function generateRefreshToken(payload: Pick<TokenPayload, "userId" | "ver
 export function verifyToken(token: string): TokenPayload | null {
   try {
     return jwt.verify(token, JWT_SECRET) as TokenPayload;
+  } catch {
+    return null;
+  }
+}
+
+export function generateReauthToken(payload: { userId: string; version: number; action?: string }) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: REAUTH_TOKEN_EXPIRES_IN });
+}
+
+export function verifyReauthToken(token: string): (TokenPayload & { action?: string }) | null {
+  try {
+    return jwt.verify(token, JWT_SECRET) as TokenPayload & { action?: string };
   } catch {
     return null;
   }

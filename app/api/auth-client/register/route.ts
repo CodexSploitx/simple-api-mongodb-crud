@@ -54,6 +54,10 @@ export async function POST(request: Request) {
     // Hash password
     const hashedPassword = await hashPassword(password);
     const tokenVersion = 0;
+    const { db: stmpDb, collection: stmpConfig } = getStmpEnv();
+    const cfgCol = await getCollection(stmpDb, stmpConfig);
+    const cfgDoc = await cfgCol.findOne({ key: "default" });
+    const requireVerify = Boolean(cfgDoc?.requireEmailVerificationLogin);
 
     // Create user
     const newUser = {
@@ -61,6 +65,7 @@ export async function POST(request: Request) {
       username,
       password: hashedPassword,
       tokenVersion,
+      verifiEmail: requireVerify ? false : true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -92,28 +97,20 @@ export async function POST(request: Request) {
         const activeTemplate = await tplCol.findOne({ eventKey: "confirm_sign_up", active: true });
         if (activeTemplate) {
           const siteUrl = process.env.API_BASE_URL || "";
-          const usersCol = await getCollection(DB_NAME, COLLECTION_NAME);
-          const user = await usersCol.findOne({ _id: new ObjectId(userId) }, { projection: { password: 0 } });
-          const tokenHash = Array.isArray(user?.apiTokens) && user!.apiTokens!.length > 0 ? (user!.apiTokens![0]?.tokenHash || "") : "";
           let code = "";
           if (String(activeTemplate.body || "").includes("{{ .CodeConfirmation }}")) {
             const otpColName = process.env.STMP_OTP || "otp";
             const otpCol = await getCollection(db, otpColName);
             code = String(Math.floor(100000 + Math.random() * 900000));
             const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-            await otpCol.insertOne({ userId: new ObjectId(userId), code, eventKey: "confirm_sign_up", used: false, createdAt: new Date(), expiresAt });
+            const maxAttempts = Number(cfg?.otpMaxAttempts || 5);
+            await otpCol.insertOne({ userId: new ObjectId(userId), code, eventKey: "confirm_sign_up", used: false, attempts: 0, maxAttempts, createdAt: new Date(), expiresAt });
           }
           const replace = (s: string): string => {
             let out = s;
             out = out.replaceAll("{{ .EmailUSer }}", String(email));
             out = out.replaceAll("{{ .UserName }}", String(username));
             out = out.replaceAll("{{ ._id }}", String(userId));
-            out = out.replaceAll("{{ .permissions.register }}", "true");
-            out = out.replaceAll("{{ .permissions.delete }}", "false");
-            out = out.replaceAll("{{ .permissions.update }}", "true");
-            out = out.replaceAll("{{ .permissions.find }}", "true");
-            out = out.replaceAll("{{ .permissions.authClientAccess }}", "false");
-            out = out.replaceAll("{{ .Token }}", tokenHash);
             out = out.replaceAll("{{ .SiteURL }}", siteUrl);
             if (code) out = out.replaceAll("{{ .CodeConfirmation }}", code);
             return out;

@@ -20,7 +20,11 @@
     "test:export": "npx tsx test-connection/test-runner.ts all --export=test-results.json",
     "test:debug": "cross-env LOG_LEVEL=DEBUG npx tsx test-connection/test-runner.ts",
     "test:watch": "npx nodemon --exec \"npm run test\" --ext ts,js,json",
-    "test:with-server": "concurrently -k --success first \"npm run dev\" \"wait-on http://localhost:3000 && npm run test:all\""
+    "test:with-server": "concurrently -k --success first \"npm run dev\" \"wait-on http://localhost:3000 && npm run test:all\"",
+    "test:auth-client": "npx tsx app/api/auth-client/scripts/test.ts",
+    "test:magic-link": "npx tsx app/api/auth-client/scripts/Magiclink.test.ts",
+    "test:change-email": "npx tsx app/api/auth-client/scripts/ChangeEmail.test.ts",
+    "test:reset-password": "npx tsx app/api/auth-client/scripts/ResetPassword.test.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
