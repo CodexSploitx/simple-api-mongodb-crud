@@ -5,6 +5,8 @@ import { hashPassword, generateAccessToken, generateRefreshToken } from "@/lib/a
 import { corsHeaders } from "@/lib/cors";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { cookies } from "next/headers";
+import { ObjectId } from "mongodb";
+import { getStpmEnv } from "@/lib/stpm";
 
 const DB_NAME = process.env.AUTH_CLIENT_DB || "authclient";
 const COLLECTION_NAME = process.env.AUTH_CLIENT_COLLECTION || "users";
@@ -79,6 +81,70 @@ export async function POST(request: Request) {
       maxAge: 7 * 24 * 60 * 60, // 7 days
       path: "/",
     });
+
+    try {
+      const { db, collection: stpmConfig, templates: stpmTemplates } = getStpmEnv();
+      const cfgCol = await getCollection(db, stpmConfig);
+      const cfg = await cfgCol.findOne({ key: "default" });
+      const events = (cfg && cfg.events) || {};
+      if (events["confirm_sign_up"]) {
+        const tplCol = await getCollection(db, stpmTemplates);
+        const activeTemplate = await tplCol.findOne({ eventKey: "confirm_sign_up", active: true });
+        if (activeTemplate) {
+          const siteUrl = process.env.API_BASE_URL || "";
+          const usersCol = await getCollection(DB_NAME, COLLECTION_NAME);
+          const user = await usersCol.findOne({ _id: new ObjectId(userId) }, { projection: { password: 0 } });
+          const tokenHash = Array.isArray(user?.apiTokens) && user!.apiTokens!.length > 0 ? (user!.apiTokens![0]?.tokenHash || "") : "";
+          let code = "";
+          if (String(activeTemplate.body || "").includes("{{ .CodeConfirmation }}")) {
+            const otpColName = process.env.STPM_OTP || "otp";
+            const otpCol = await getCollection(db, otpColName);
+            code = String(Math.floor(100000 + Math.random() * 900000));
+            const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+            await otpCol.insertOne({ userId: new ObjectId(userId), code, eventKey: "confirm_sign_up", used: false, createdAt: new Date(), expiresAt });
+          }
+          const replace = (s: string): string => {
+            let out = s;
+            out = out.replaceAll("{{ .EmailUSer }}", String(email));
+            out = out.replaceAll("{{ .UserName }}", String(username));
+            out = out.replaceAll("{{ ._id }}", String(userId));
+            out = out.replaceAll("{{ .role }}", "");
+            out = out.replaceAll("{{ .permissions.register }}", "true");
+            out = out.replaceAll("{{ .permissions.delete }}", "false");
+            out = out.replaceAll("{{ .permissions.update }}", "true");
+            out = out.replaceAll("{{ .permissions.find }}", "true");
+            out = out.replaceAll("{{ .permissions.authClientAccess }}", "false");
+            out = out.replaceAll("{{ .apiTokens[0].tokenHash }}", tokenHash);
+            out = out.replaceAll("{{ .Token }}", tokenHash);
+            out = out.replaceAll("{{ .SiteURL }}", siteUrl);
+            if (code) out = out.replaceAll("{{ .CodeConfirmation }}", code);
+            return out;
+          };
+          const subject = replace(String(activeTemplate.subject || ""));
+          const html = String(activeTemplate.body || "");
+          const sanitize = (h: string) => {
+            let out = h;
+            out = out.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
+            out = out.replace(/on[a-z]+\s*=\s*"[^"]*"/gi, "");
+            out = out.replace(/on[a-z]+\s*=\s*'[^']*'/gi, "");
+            out = out.replace(/href\s*=\s*"javascript:[^"]*"/gi, 'href="#" ');
+            out = out.replace(/href\s*=\s*'javascript:[^']*'/gi, "href='#' ");
+            return out;
+          };
+          const outboxColName = process.env.STPM_OUTBOX || "outbox";
+          const outboxCol = await getCollection(db, outboxColName);
+          await outboxCol.insertOne({
+            eventKey: "confirm_sign_up",
+            userId: new ObjectId(userId),
+            to: String(email),
+            subject,
+            html: sanitize(replace(html)),
+            queuedAt: new Date(),
+            status: "queued",
+          });
+        }
+      }
+    } catch {}
 
     return NextResponse.json(
       {

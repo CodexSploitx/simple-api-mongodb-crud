@@ -32,6 +32,7 @@ const ITEMS: TemplateItem[] = [
 
 export default function TemplatesList({ onSelect }: Props) {
   const [existing, setExisting] = useState<Record<string, ExistingTemplate[]>>({});
+  const [events, setEvents] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const loadAll = async () => {
@@ -48,7 +49,15 @@ export default function TemplatesList({ onSelect }: Props) {
         }
       } catch {}
     };
+    const loadEvents = async () => {
+      try {
+        const r = await fetch("/api/stpm/events", { credentials: "include" });
+        const j = await r.json();
+        if (j?.success && j?.events) setEvents(j.events as Record<string, boolean>);
+      } catch {}
+    };
     loadAll();
+    loadEvents();
   }, []);
 
   return (
@@ -71,7 +80,26 @@ export default function TemplatesList({ onSelect }: Props) {
                 <div className="text-sm text-[var(--text)]">{item.title}</div>
                 <div className="text-xs text-[var(--text-muted)]">{item.description}</div>
               </div>
-              <div className="text-xs text-[var(--text-muted)]">›</div>
+              <div className="flex items-center gap-3">
+                <button
+                  aria-label={events[item.key] ? 'Enabled' : 'Disabled'}
+                  onClick={(e)=>{
+                    e.stopPropagation();
+                    const next = !Boolean(events[item.key]);
+                    setEvents(prev => ({ ...prev, [item.key]: next }));
+                    fetch('/api/stpm/events', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({ eventKey: item.key, active: next }),
+                    }).catch(()=>{});
+                  }}
+                  className={`ml-3 w-10 h-5 rounded-full relative ${events[item.key] ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
+                >
+                  <span className={`absolute top-0.5 ${events[item.key] ? 'left-5' : 'left-0.5'} w-4 h-4 rounded-full bg-white transition-all`} />
+                </button>
+                <div className="text-xs text-[var(--text-muted)]">›</div>
+              </div>
             </div>
           </button>
         ))}
