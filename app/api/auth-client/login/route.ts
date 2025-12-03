@@ -3,7 +3,7 @@ import { getCollection } from "@/lib/mongo";
 import { LoginSchema } from "@/lib/validations";
 import { verifyPassword, generateAccessToken, generateRefreshToken } from "@/lib/auth";
 import { getStmpEnv } from "@/lib/stmp";
-import { corsHeaders } from "@/lib/cors";
+import { corsHeaders, isCorsEnabled } from "@/lib/cors";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { cookies } from "next/headers";
 
@@ -12,12 +12,14 @@ const COLLECTION_NAME = process.env.AUTH_CLIENT_COLLECTION || "users";
 
 export async function OPTIONS(request: Request) {
   const origin = request.headers.get("origin");
-  return NextResponse.json({}, { headers: corsHeaders(origin) });
+  const enabled = await isCorsEnabled();
+  return NextResponse.json({}, { headers: corsHeaders(origin, enabled) });
 }
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
-  const headers = corsHeaders(origin);
+  const enabled = await isCorsEnabled();
+  const headers = corsHeaders(origin, enabled);
 
   try {
     // Rate Limit

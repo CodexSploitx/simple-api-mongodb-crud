@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/mongo";
 import { verifyToken, generateAccessToken } from "@/lib/auth";
-import { corsHeaders } from "@/lib/cors";
+import { corsHeaders, isCorsEnabled } from "@/lib/cors";
 import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 
@@ -10,12 +10,14 @@ const COLLECTION_NAME = process.env.AUTH_CLIENT_COLLECTION || "users";
 
 export async function OPTIONS(request: Request) {
   const origin = request.headers.get("origin");
-  return NextResponse.json({}, { headers: corsHeaders(origin) });
+  const enabled = await isCorsEnabled();
+  return NextResponse.json({}, { headers: corsHeaders(origin, enabled) });
 }
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
-  const headers = corsHeaders(origin);
+  const enabled = await isCorsEnabled();
+  const headers = corsHeaders(origin, enabled);
 
   try {
     const cookieStore = await cookies();

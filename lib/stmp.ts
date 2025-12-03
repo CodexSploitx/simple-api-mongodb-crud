@@ -10,7 +10,7 @@ export function getStmpEnv() {
 }
 
 function getKey(): Buffer {
-  const raw = process.env.STMP_ENCRYPTION_KEY || process.env.JWT_SECRET || "default-key";
+  const raw = process.env.STMP_ENCRYPTION_KEY || process.env.JWT_SECRET || "MVJDk5j12drPsMpzTFBBTZm7UhEBgrbHWwIOEbUg2ElRBzQHGyqSqmIEoGYPhmbe";
   return crypto.createHash("sha256").update(raw).digest();
 }
 

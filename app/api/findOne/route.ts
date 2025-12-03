@@ -4,7 +4,7 @@ import { findOneDocument } from "../../../services/crudService";
 import { validateHttpMethod } from "../../../lib/httpMethodValidator";
 import { validateForQuery } from "../../../lib/mongo";
 import { FindOneRequest, FindOneResponse, ErrorResponse, SuccessResponse } from "../../../types/mongo";
-import { requireAuthClient, type RequireAuthClientOk, type RequireAuthClientError } from "../../../lib/auth";
+import { requireAuthClient, isAuthClientModeEnabled, type RequireAuthClientOk, type RequireAuthClientError } from "../../../lib/auth";
 
 export async function POST(
   request: NextRequest
@@ -14,18 +14,15 @@ export async function POST(
     const methodValidation = validateHttpMethod(request, "/api/findOne");
     if (methodValidation) return methodValidation;
 
-    const useAuthClient = String(process.env.RELACIONALDB_AUTH_CLIENT || "false").toLowerCase() === "true";
+    const useAuthClient = await isAuthClientModeEnabled();
     let authClientOk: RequireAuthClientOk | null = null;
-    let authClientErr: NextResponse<ErrorResponse> | null = null;
     if (useAuthClient) {
       const rc = await requireAuthClient(request);
-      if (rc.ok) authClientOk = rc as RequireAuthClientOk;
-      else authClientErr = (rc as RequireAuthClientError).response as NextResponse<ErrorResponse>;
-    }
-
-    const systemAuth = await authToken(request, "find");
-    if (systemAuth !== null && !authClientOk) {
-      return authClientErr ?? systemAuth;
+      if (!rc.ok) return (rc as RequireAuthClientError).response as NextResponse<ErrorResponse>;
+      authClientOk = rc as RequireAuthClientOk;
+    } else {
+      const systemAuth = await authToken(request, "find");
+      if (systemAuth !== null) return systemAuth;
     }
 
     // Parsear el cuerpo de la solicitud

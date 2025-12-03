@@ -4,7 +4,7 @@ import { authToken } from "../../../middleware/authToken";
 import { validateJsonBodyMiddleware } from "../../../lib/requestValidation";
 import { z, ZodError } from "zod";
 import { ApiResponse } from "../../../types/mongo.d";
-import { requireAuthClient, type RequireAuthClientOk, type RequireAuthClientError } from "../../../lib/auth";
+import { requireAuthClient, isAuthClientModeEnabled, type RequireAuthClientOk, type RequireAuthClientError } from "../../../lib/auth";
 
 const insertOneRequestSchema = z.object({
   db: z
@@ -27,18 +27,15 @@ const insertOneRequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const useAuthClient = String(process.env.RELACIONALDB_AUTH_CLIENT || "false").toLowerCase() === "true";
+    const useAuthClient = await isAuthClientModeEnabled();
     let authClientOk: RequireAuthClientOk | null = null;
-    let authClientErr: NextResponse | null = null;
     if (useAuthClient) {
       const rc = await requireAuthClient(req);
-      if (rc.ok) authClientOk = rc as RequireAuthClientOk;
-      else authClientErr = (rc as RequireAuthClientError).response;
-    }
-
-    const systemAuth = await authToken(req, "register");
-    if (systemAuth !== null && !authClientOk) {
-      return authClientErr ?? systemAuth;
+      if (!rc.ok) return (rc as RequireAuthClientError).response;
+      authClientOk = rc as RequireAuthClientOk;
+    } else {
+      const systemAuth = await authToken(req, "register");
+      if (systemAuth !== null) return systemAuth;
     }
 
     // Validate JSON body using our new utility

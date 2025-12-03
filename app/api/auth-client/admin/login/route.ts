@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { corsHeaders } from "@/lib/cors";
+import { corsHeaders, isCorsEnabled } from "@/lib/cors";
 import { checkRateLimit } from "@/lib/rate-limit";
 import jwt from "jsonwebtoken";
 
@@ -9,12 +9,14 @@ const ADMIN_PASSWORD = process.env.PASSWORD_AUTH_CLIENT || "admin123";
 
 export async function OPTIONS(request: Request) {
   const origin = request.headers.get("origin");
-  return NextResponse.json({}, { headers: corsHeaders(origin) });
+  const enabled = await isCorsEnabled();
+  return NextResponse.json({}, { headers: corsHeaders(origin, enabled) });
 }
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
-  const headers = corsHeaders(origin);
+  const enabled = await isCorsEnabled();
+  const headers = corsHeaders(origin, enabled);
 
   try {
     // Rate limiting

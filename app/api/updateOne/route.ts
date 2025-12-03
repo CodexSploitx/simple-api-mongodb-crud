@@ -2,22 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { authToken } from "../../../middleware/authToken";
 import { updateOneDocument } from "../../../services/crudService";
 import type { UpdateOneRequest, ApiResponse, UpdateOneResponse } from "../../../types/mongo";
-import { requireAuthClient, type RequireAuthClientOk, type RequireAuthClientError } from "../../../lib/auth";
+import { requireAuthClient, isAuthClientModeEnabled, type RequireAuthClientOk, type RequireAuthClientError } from "../../../lib/auth";
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {
   try {
-    const useAuthClient = String(process.env.RELACIONALDB_AUTH_CLIENT || "false").toLowerCase() === "true";
+    const useAuthClient = await isAuthClientModeEnabled();
     let authClientOk: RequireAuthClientOk | null = null;
-    let authClientErr: NextResponse | null = null;
     if (useAuthClient) {
       const rc = await requireAuthClient(request);
-      if (rc.ok) authClientOk = rc as RequireAuthClientOk;
-      else authClientErr = (rc as RequireAuthClientError).response;
-    }
-
-    const systemAuth = await authToken(request, "update");
-    if (systemAuth !== null && !authClientOk) {
-      return authClientErr ?? systemAuth;
+      if (!rc.ok) return (rc as RequireAuthClientError).response;
+      authClientOk = rc as RequireAuthClientOk;
+    } else {
+      const systemAuth = await authToken(request, "update");
+      if (systemAuth !== null) return systemAuth;
     }
 
     // Parsear el cuerpo de la petición

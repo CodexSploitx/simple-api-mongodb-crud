@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getCollection } from "@/lib/mongo";
 import { MongoClient } from "mongodb";
-import { corsHeaders } from "@/lib/cors";
+import { corsHeaders, isCorsEnabled } from "@/lib/cors";
 import { hashPassword } from "@/lib/auth";
 import { requireAuthClientAdmin } from "@/lib/auth";
 import { ObjectId } from "mongodb";
@@ -13,7 +13,8 @@ const COLLECTION_NAME = process.env.AUTH_CLIENT_COLLECTION || "users";
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get("origin");
-  return NextResponse.json({}, { headers: corsHeaders(origin) });
+  const enabled = await isCorsEnabled();
+  return NextResponse.json({}, { headers: corsHeaders(origin, enabled) });
 }
 
 export async function DELETE(
@@ -21,7 +22,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const origin = request.headers.get("origin");
-  const headers = corsHeaders(origin);
+  const enabled = await isCorsEnabled();
+  const headers = corsHeaders(origin, enabled);
 
   try {
     const rc = await requireAuthClientAdmin(request);
@@ -200,7 +202,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const origin = request.headers.get("origin");
-  const headers = corsHeaders(origin);
+  const enabled = await isCorsEnabled();
+  const headers = corsHeaders(origin, enabled);
 
   try {
     const rc = await requireAuthClientAdmin(request);

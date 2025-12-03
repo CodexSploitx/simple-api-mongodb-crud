@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCollection } from "./mongo";
 import { ObjectId } from "mongodb";
 
-const JWT_SECRET = process.env.JWT_SECRET || "default-secret-key";
+const JWT_SECRET = process.env.JWT_AUTH_CLIENT || process.env.JWT_SECRET || "default-secret-key";
 const ACCESS_TOKEN_EXPIRES_IN = "15m";
 const REFRESH_TOKEN_EXPIRES_IN = "7d";
 const REAUTH_TOKEN_EXPIRES_IN = "5m";
@@ -56,8 +56,21 @@ export function verifyReauthToken(token: string): (TokenPayload & { action?: str
 
 export type RequireAuthClientOk = { ok: true; userId: string };
 export type RequireAuthClientError = { ok: false; response: NextResponse };
+export async function isAuthClientModeEnabled(): Promise<boolean> {
+  try {
+    const dbName = process.env.AUTH_CLIENT_DB || "authclient";
+    const colName = process.env.AUTH_CLIENT_SETTINGS || "settings";
+    const col = await getCollection(dbName, colName);
+    const cfg = await col.findOne({ key: "access_mode" });
+    return Boolean(cfg?.relacionaldb_auth_client === true);
+  } catch {
+    const fallback = String(process.env.RELACIONALDB_AUTH_CLIENT || "false").toLowerCase() === "true";
+    return fallback;
+  }
+}
+
 export async function requireAuthClient(req: NextRequest): Promise<RequireAuthClientOk | RequireAuthClientError> {
-  const enabled = String(process.env.RELACIONALDB_AUTH_CLIENT || "false").toLowerCase() === "true";
+  const enabled = await isAuthClientModeEnabled();
   if (!enabled) {
     return { ok: false, response: NextResponse.json({ error: "Auth Client deshabilitado" }, { status: 403 }) };
   }
