@@ -77,3 +77,31 @@ export function saveSession(token: string): void {
     sessionStorage.setItem("authClientAdminToken", token);
   } catch {}
 }
+
+export async function adminRequestOtp(email: string): Promise<{ success: boolean; queued?: boolean; error?: string }> {
+  try {
+    const res = await fetch(`/api/auth-client/admin/otp/request`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    return await res.json();
+  } catch {
+    return { success: false, error: "Network error" };
+  }
+}
+
+export async function adminVerifyOtp(email: string, code: string): Promise<AdminLoginResponse> {
+  try {
+    const res = await fetch(`/api/auth-client/admin/otp/verify`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code }),
+    });
+    return await res.json();
+  } catch {
+    return { success: false, error: "Network error" };
+  }
+}

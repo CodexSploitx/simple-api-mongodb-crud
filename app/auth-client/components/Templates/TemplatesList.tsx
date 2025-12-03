@@ -37,7 +37,7 @@ export default function TemplatesList({ onSelect }: Props) {
   useEffect(() => {
     const loadAll = async () => {
       try {
-        const r = await fetch("/api/stpm/templates", { credentials: "include" });
+        const r = await fetch("/api/stmp/templates", { credentials: "include" });
         const j = await r.json();
         if (j?.success && Array.isArray(j?.data)) {
           const map: Record<string, ExistingTemplate[]> = {};
@@ -51,7 +51,7 @@ export default function TemplatesList({ onSelect }: Props) {
     };
     const loadEvents = async () => {
       try {
-        const r = await fetch("/api/stpm/events", { credentials: "include" });
+        const r = await fetch("/api/stmp/events", { credentials: "include" });
         const j = await r.json();
         if (j?.success && j?.events) setEvents(j.events as Record<string, boolean>);
       } catch {}
@@ -65,14 +65,25 @@ export default function TemplatesList({ onSelect }: Props) {
       <div className="text-sm font-semibold text-[var(--text)] mb-2">Authentication</div>
       <div className="space-y-2">
         {ITEMS.map((item) => (
-          <button
+          <div
             key={item.key}
             className="w-full text-left p-4 rounded-lg border border-[var(--border)] hover:bg-[var(--card)]"
+            role="button"
+            tabIndex={0}
             onClick={() => {
               const existList = existing[item.key] || [];
               const activeOne = existList.find(t => t.active);
               const base = activeOne || existList[0];
               onSelect({ eventKey: item.key, name: base?.name || item.key, subject: base?.subject || item.defaultSubject, body: base?.body });
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const existList = existing[item.key] || [];
+                const activeOne = existList.find(t => t.active);
+                const base = activeOne || existList[0];
+                onSelect({ eventKey: item.key, name: base?.name || item.key, subject: base?.subject || item.defaultSubject, body: base?.body });
+              }
             }}
           >
             <div className="flex items-center justify-between">
@@ -87,12 +98,20 @@ export default function TemplatesList({ onSelect }: Props) {
                     e.stopPropagation();
                     const next = !Boolean(events[item.key]);
                     setEvents(prev => ({ ...prev, [item.key]: next }));
-                    fetch('/api/stpm/events', {
+                    fetch('/api/stmp/events', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       credentials: 'include',
                       body: JSON.stringify({ eventKey: item.key, active: next }),
-                    }).catch(()=>{});
+                    }).then(async (res)=>{
+                      const j = await res.json().catch(()=>({ success:false }));
+                      if (!res.ok || !j?.success) {
+                        setEvents(prev => ({ ...prev, [item.key]: !next }));
+                        alert(j?.error || 'Failed to toggle event: active template with HTML required');
+                      }
+                    }).catch(()=>{
+                      setEvents(prev => ({ ...prev, [item.key]: !next }));
+                    });
                   }}
                   className={`ml-3 w-10 h-5 rounded-full relative ${events[item.key] ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
                 >
@@ -101,7 +120,7 @@ export default function TemplatesList({ onSelect }: Props) {
                 <div className="text-xs text-[var(--text-muted)]">›</div>
               </div>
             </div>
-          </button>
+          </div>
         ))}
       </div>
     </div>

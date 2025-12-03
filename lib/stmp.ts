@@ -1,14 +1,16 @@
 import crypto from "crypto";
 
-export function getStpmEnv() {
-  const db = process.env.STPM_DB || "stpmdb";
-  const collection = process.env.STPM_COLLECTION || "config";
-  const templates = process.env.STPM_TEMPLATES || "templates";
-  return { db, collection, templates };
+export function getStmpEnv() {
+  const db = process.env.STMP_DB || "stmpdb";
+  const collection = process.env.STMP_COLLECTION || "config";
+  const templates = process.env.STMP_TEMPLATES || "templates";
+  const otp = process.env.STMP_OTP || "otp";
+  const outbox = process.env.STMP_OUTBOX || "outbox";
+  return { db, collection, templates, otp, outbox };
 }
 
 function getKey(): Buffer {
-  const raw = process.env.STPM_ENCRYPTION_KEY || process.env.JWT_SECRET || "default-key";
+  const raw = process.env.STMP_ENCRYPTION_KEY || process.env.JWT_SECRET || "default-key";
   return crypto.createHash("sha256").update(raw).digest();
 }
 

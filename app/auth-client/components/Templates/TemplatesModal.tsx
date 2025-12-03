@@ -41,6 +41,7 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
   interface UserRecord { _id: string; username: string; email: string; role: string; permissions?: { register?: boolean; delete?: boolean; update?: boolean; find?: boolean; authClientAccess?: boolean }; apiTokens?: UserToken[] }
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const isDefault = useMemo(() => name === "__default__", [name]);
 
   const defaultSubjectByEvent = useMemo((): Record<string, string> => ({
     confirm_sign_up: "Confirm Your Signup",
@@ -55,7 +56,7 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
     try {
       const key = (ek ?? initialEventKey ?? eventKey) || "";
       if (!key) { setTemplates([]); return; }
-      const r = await fetch(`/api/stpm/templates?eventKey=${encodeURIComponent(key)}`, { credentials: "include" });
+      const r = await fetch(`/api/stmp/templates?eventKey=${encodeURIComponent(key)}`, { credentials: "include" });
       const j = await r.json();
       if (j?.success && Array.isArray(j?.data)) {
         setTemplates(j.data as TemplateDoc[]);
@@ -96,11 +97,12 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
     setError("");
     setSaving(true);
     try {
-      const r = await fetch("/api/stpm/templates", {
+      const finalName = isDefault ? "__default__" : name;
+      const r = await fetch("/api/stmp/templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ eventKey, name, subject, body, active }),
+        body: JSON.stringify({ eventKey, name: finalName, subject, body, active }),
       });
       const j = await r.json();
       if (j?.success) {
@@ -127,13 +129,11 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
     { label: "{{ .SiteURL }}", value: "{{ .SiteURL }}", title: "Site URL" },
     { label: "{{ .Token }}", value: "{{ .Token }}", title: "Access token of the user" },
     { label: "{{ ._id }}", value: "{{ ._id }}", title: "ID of the user" },
-    { label: "{{ .role }}", value: "{{ .role }}", title: "Role of the user" },
     { label: "{{ .permissions.register }}", value: "{{ .permissions.register }}", title: "Permission register" },
     { label: "{{ .permissions.delete }}", value: "{{ .permissions.delete }}", title: "Permission delete" },
     { label: "{{ .permissions.update }}", value: "{{ .permissions.update }}", title: "Permission update" },
     { label: "{{ .permissions.find }}", value: "{{ .permissions.find }}", title: "Permission find" },
     { label: "{{ .permissions.authClientAccess }}", value: "{{ .permissions.authClientAccess }}", title: "Permission authClientAccess" },
-    { label: "{{ .apiTokens[0].tokenHash }}", value: "{{ .apiTokens[0].tokenHash }}", title: "API token hash" },
   ], []);
 
   const essentialValues = useMemo(() => new Set(["{{ .EmailUSer }}", "{{ .UserName }}", "{{ .CodeConfirmation }}", "{{ .SiteURL }}", "{{ .Token }}"]), []);
@@ -209,20 +209,15 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
     out = out.replaceAll("{{ .UserName }}", username);
     if (user) {
       out = out.replaceAll("{{ ._id }}", String(user._id));
-      out = out.replaceAll("{{ .role }}", String(user.role));
       out = out.replaceAll("{{ .permissions.register }}", String(Boolean(user.permissions?.register)));
       out = out.replaceAll("{{ .permissions.delete }}", String(Boolean(user.permissions?.delete)));
       out = out.replaceAll("{{ .permissions.update }}", String(Boolean(user.permissions?.update)));
       out = out.replaceAll("{{ .permissions.find }}", String(Boolean(user.permissions?.find)));
       out = out.replaceAll("{{ .permissions.authClientAccess }}", String(Boolean(user.permissions?.authClientAccess)));
-      const t0 = user.apiTokens && user.apiTokens.length > 0 ? user.apiTokens[0] : undefined;
-      const tokenHash = t0?.tokenHash || "";
-      out = out.replaceAll("{{ .apiTokens[0].tokenHash }}", tokenHash);
-      const token = tokenHash || "ACCESS_TOKEN_SAMPLE";
+      const token = "";
       out = out.replaceAll("{{ .Token }}", token);
     } else {
-      out = out.replaceAll("{{ .apiTokens[0].tokenHash }}", "");
-      out = out.replaceAll("{{ .Token }}", "ACCESS_TOKEN_SAMPLE");
+      out = out.replaceAll("{{ .Token }}", "");
     }
     return sanitizeHtml(out);
   };
@@ -230,7 +225,7 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
   const setActiveForEvent = async (t: TemplateDoc) => {
     setError("");
     try {
-      const r = await fetch("/api/stpm/templates", {
+      const r = await fetch("/api/stmp/templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -264,11 +259,13 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
 
         {activeTab === "list" && (
           <div>
+            <div className="flex justify-end mb-2">
+              <button onClick={()=>{ setName(""); setSubject(defaultSubjectByEvent[eventKey] || ""); setBody(""); setSelectedIndex(null); setActive(false); setActiveTab('editor'); }} className="px-3 py-1 text-xs rounded bg-[var(--primary)] text-[var(--on-primary)]">Crear template</button>
+            </div>
             <div className="space-y-3 max-h-96 overflow-auto">
               {templates.length === 0 && (
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-[var(--text-muted)]">Sin templates</div>
-                  <button onClick={()=>{ setName(""); setSubject(defaultSubjectByEvent[eventKey] || ""); setBody(""); setSelectedIndex(null); setActive(false); setActiveTab('editor'); }} className="px-3 py-1 text-xs rounded bg-[var(--primary)] text-[var(--on-primary)]">Crear template</button>
                 </div>
               )}
               {templates.map((t, idx) => (
@@ -278,6 +275,7 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
                       <div className="flex items-center gap-2">
                         <div className="text-sm text-[var(--text)]">{t.name}</div>
                         {t.active && <span className="px-2 py-0.5 text-[10px] rounded bg-[var(--primary)] text-[var(--on-primary)]">Active</span>}
+                        {t.name === "__default__" && <span className="px-2 py-0.5 text-[10px] rounded bg-[var(--card)] border border-[var(--border)] text-[var(--text-muted)]">Default</span>}
                       </div>
                       <div className="text-xs text-[var(--text-muted)]">{t.subject}</div>
                     </button>
@@ -295,8 +293,9 @@ export default function TemplatesModal({ isOpen, onClose, initialEventKey }: Pro
           <form onSubmit={save} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--text)] mb-2">Name</label>
-                <input value={name} onChange={(e)=>setName(e.target.value)} type="text" placeholder="welcome" className="w-full px-3 py-2 rounded-lg text-sm bg-[var(--card)] border border-[var(--border)] text-[var(--text)]" />
+                <label className="block text-sm font-medium text-[var(--text)] mb-2">Name {isDefault && <span className="ml-2 px-2 py-0.5 text-[10px] rounded bg-[var(--primary)] text-[var(--on-primary)]">Default</span>}</label>
+                <input value={name} onChange={(e)=>setName(e.target.value)} type="text" placeholder="welcome" disabled={isDefault} className={`w-full px-3 py-2 rounded-lg text-sm bg-[var(--card)] border border-[var(--border)] text-[var(--text)] ${isDefault ? 'opacity-70 cursor-not-allowed' : ''}`} />
+                {isDefault && <div className="mt-1 text-[10px] text-[var(--text-muted)]">El nombre de la plantilla por defecto está bloqueado.</div>}
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-[var(--text)] mb-2">Subject</label>

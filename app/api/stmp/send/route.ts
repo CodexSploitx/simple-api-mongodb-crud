@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCollection } from "@/lib/mongo";
-import { getStpmEnv } from "@/lib/stpm";
+import { getStmpEnv } from "@/lib/stmp";
 import { requireAuthClientAdmin, type RequireAuthClientError } from "@/lib/auth";
 import { ObjectId } from "mongodb";
+import { ensureReadableEmailHtml } from "@/lib/mailer";
 
 function resolveUsersEnv(): { USERS_DB: string; USERS_COLLECTION: string } {
   const USERS_DB =
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Users configuration missing" }, { status: 500 });
   }
 
-  const { db, templates } = getStpmEnv();
+  const { db, templates } = getStmpEnv();
   const templatesCol = await getCollection(db, templates);
   const activeTemplate = await templatesCol.findOne({ eventKey, active: true });
   if (!activeTemplate) {
@@ -66,10 +67,10 @@ export async function POST(req: NextRequest) {
   }
 
   const siteUrl = process.env.API_BASE_URL || "";
-  const tokenHash = Array.isArray(user.apiTokens) && user.apiTokens.length > 0 ? (user.apiTokens[0]?.tokenHash || "") : "";
+
   let code = "";
   if (String(activeTemplate.body || "").includes("{{ .CodeConfirmation }}")) {
-    const otpColName = process.env.STPM_OTP || "otp";
+    const otpColName = process.env.STMP_OTP || "otp";
     const otpCol = await getCollection(db, otpColName);
     code = String(Math.floor(100000 + Math.random() * 900000));
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
@@ -81,23 +82,23 @@ export async function POST(req: NextRequest) {
     out = out.replaceAll("{{ .EmailUSer }}", String(user.email || ""));
     out = out.replaceAll("{{ .UserName }}", String(user.username || ""));
     out = out.replaceAll("{{ ._id }}", String(user._id));
-    out = out.replaceAll("{{ .role }}", String(user.role || ""));
+    // role variable removed
     out = out.replaceAll("{{ .permissions.register }}", String(Boolean(user.permissions?.register)));
     out = out.replaceAll("{{ .permissions.delete }}", String(Boolean(user.permissions?.delete)));
     out = out.replaceAll("{{ .permissions.update }}", String(Boolean(user.permissions?.update)));
     out = out.replaceAll("{{ .permissions.find }}", String(Boolean(user.permissions?.find)));
     out = out.replaceAll("{{ .permissions.authClientAccess }}", String(Boolean(user.permissions?.authClientAccess)));
-    out = out.replaceAll("{{ .apiTokens[0].tokenHash }}", tokenHash);
-    out = out.replaceAll("{{ .Token }}", tokenHash);
+    // token hash variable removed
+    out = out.replaceAll("{{ .Token }}", "");
     out = out.replaceAll("{{ .SiteURL }}", siteUrl);
     if (code) out = out.replaceAll("{{ .CodeConfirmation }}", code);
     return out;
   };
 
   const subject = replace(String(activeTemplate.subject || ""));
-  const html = sanitizeHtml(replace(String(activeTemplate.body || "")));
+  const html = ensureReadableEmailHtml(sanitizeHtml(replace(String(activeTemplate.body || ""))));
 
-  const outboxColName = process.env.STPM_OUTBOX || "outbox";
+  const outboxColName = process.env.STMP_OUTBOX || "outbox";
   const outboxCol = await getCollection(db, outboxColName);
   await outboxCol.insertOne({
     eventKey,

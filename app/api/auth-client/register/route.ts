@@ -6,7 +6,7 @@ import { corsHeaders } from "@/lib/cors";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
-import { getStpmEnv } from "@/lib/stpm";
+import { getStpmEnv } from "@/lib/stmp";
 
 const DB_NAME = process.env.AUTH_CLIENT_DB || "authclient";
 const COLLECTION_NAME = process.env.AUTH_CLIENT_COLLECTION || "users";
@@ -83,12 +83,12 @@ export async function POST(request: Request) {
     });
 
     try {
-      const { db, collection: stpmConfig, templates: stpmTemplates } = getStpmEnv();
-      const cfgCol = await getCollection(db, stpmConfig);
+      const { db, collection: stmpConfig, templates: stmpTemplates } = getStmpEnv();
+      const cfgCol = await getCollection(db, stmpConfig);
       const cfg = await cfgCol.findOne({ key: "default" });
       const events = (cfg && cfg.events) || {};
       if (events["confirm_sign_up"]) {
-        const tplCol = await getCollection(db, stpmTemplates);
+        const tplCol = await getCollection(db, stmpTemplates);
         const activeTemplate = await tplCol.findOne({ eventKey: "confirm_sign_up", active: true });
         if (activeTemplate) {
           const siteUrl = process.env.API_BASE_URL || "";
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
           const tokenHash = Array.isArray(user?.apiTokens) && user!.apiTokens!.length > 0 ? (user!.apiTokens![0]?.tokenHash || "") : "";
           let code = "";
           if (String(activeTemplate.body || "").includes("{{ .CodeConfirmation }}")) {
-            const otpColName = process.env.STPM_OTP || "otp";
+            const otpColName = process.env.STMP_OTP || "otp";
             const otpCol = await getCollection(db, otpColName);
             code = String(Math.floor(100000 + Math.random() * 900000));
             const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -108,13 +108,11 @@ export async function POST(request: Request) {
             out = out.replaceAll("{{ .EmailUSer }}", String(email));
             out = out.replaceAll("{{ .UserName }}", String(username));
             out = out.replaceAll("{{ ._id }}", String(userId));
-            out = out.replaceAll("{{ .role }}", "");
             out = out.replaceAll("{{ .permissions.register }}", "true");
             out = out.replaceAll("{{ .permissions.delete }}", "false");
             out = out.replaceAll("{{ .permissions.update }}", "true");
             out = out.replaceAll("{{ .permissions.find }}", "true");
             out = out.replaceAll("{{ .permissions.authClientAccess }}", "false");
-            out = out.replaceAll("{{ .apiTokens[0].tokenHash }}", tokenHash);
             out = out.replaceAll("{{ .Token }}", tokenHash);
             out = out.replaceAll("{{ .SiteURL }}", siteUrl);
             if (code) out = out.replaceAll("{{ .CodeConfirmation }}", code);
@@ -131,9 +129,9 @@ export async function POST(request: Request) {
             out = out.replace(/href\s*=\s*'javascript:[^']*'/gi, "href='#' ");
             return out;
           };
-          const outboxColName = process.env.STPM_OUTBOX || "outbox";
+          const outboxColName = process.env.STMP_OUTBOX || "outbox";
           const outboxCol = await getCollection(db, outboxColName);
-          await outboxCol.insertOne({
+          const outboxDoc = {
             eventKey: "confirm_sign_up",
             userId: new ObjectId(userId),
             to: String(email),
@@ -141,7 +139,15 @@ export async function POST(request: Request) {
             html: sanitize(replace(html)),
             queuedAt: new Date(),
             status: "queued",
-          });
+          };
+          await outboxCol.insertOne(outboxDoc);
+          try {
+            const { sendMail, ensureReadableEmailHtml } = await import("@/lib/mailer");
+            const ok = await sendMail(outboxDoc.to, outboxDoc.subject, ensureReadableEmailHtml(outboxDoc.html));
+            if (ok) {
+              await outboxCol.updateOne({ userId: new ObjectId(userId), eventKey: "confirm_sign_up", queuedAt: outboxDoc.queuedAt }, { $set: { status: "sent", sentAt: new Date() } });
+            }
+          } catch {}
         }
       }
     } catch {}

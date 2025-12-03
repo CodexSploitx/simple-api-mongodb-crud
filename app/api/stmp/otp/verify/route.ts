@@ -3,8 +3,8 @@ import { getCollection } from "@/lib/mongo";
 import { ObjectId } from "mongodb";
 
 function getOtpEnv() {
-  const db = process.env.STPM_DB || process.env.AUTH_CLIENT_DB || "authclient";
-  const otp = process.env.STPM_OTP || "otp";
+  const db = process.env.STMP_DB || process.env.AUTH_CLIENT_DB || "authclient";
+  const otp = process.env.STMP_OTP || "otp";
   return { db, otp };
 }
 

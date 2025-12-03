@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCollection } from "@/lib/mongo";
 import { requireAuthClientAdmin, type RequireAuthClientError } from "@/lib/auth";
 import { z } from "zod";
-import { getStpmEnv } from "@/lib/stpm";
+import { getStpmEnv } from "@/lib/stmp";
 
 const TemplateSchema = z.object({
   eventKey: z.string().min(1).max(64),
@@ -15,7 +15,7 @@ const TemplateSchema = z.object({
 export async function GET(req: NextRequest) {
   const auth = await requireAuthClientAdmin(req);
   if (!auth.ok) return (auth as RequireAuthClientError).response;
-  const { db, templates } = getStpmEnv();
+  const { db, templates } = getStmpEnv();
   const col = await getCollection(db, templates);
   const name = req.nextUrl.searchParams.get("name");
   const eventKey = req.nextUrl.searchParams.get("eventKey");
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Validation error" }, { status: 400 });
   }
   const { eventKey, name, subject, body: content, active } = parsed.data;
-  const { db, templates } = getStpmEnv();
+  const { db, templates } = getStmpEnv();
   const col = await getCollection(db, templates);
   if (active === true) {
     await col.updateMany({ eventKey }, { $set: { active: false } });

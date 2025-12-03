@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCollection } from "@/lib/mongo";
 import { requireAuthClientAdmin, type RequireAuthClientError } from "@/lib/auth";
 import { z } from "zod";
-import { getStpmEnv, encryptSecret } from "@/lib/stpm";
+import { getStmpEnv, encryptSecret } from "@/lib/stmp";
 
 const StpmSchema = z.object({
   senderEmail: z.string().email(),
@@ -17,7 +17,7 @@ const StpmSchema = z.object({
 export async function GET(req: NextRequest) {
   const auth = await requireAuthClientAdmin(req);
   if (!auth.ok) return (auth as RequireAuthClientError).response;
-  const { db, collection } = getStpmEnv();
+  const { db, collection } = getStmpEnv();
   const col = await getCollection(db, collection);
   const doc = await col.findOne({ key: "default" });
   if (!doc) {
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Validation error" }, { status: 400 });
   }
   const { senderEmail, senderName, host, port, minIntervalSeconds, username, password } = parsed.data;
-  const { db, collection } = getStpmEnv();
+  const { db, collection } = getStmpEnv();
   const col = await getCollection(db, collection);
   const update: Record<string, unknown> = {
     senderEmail,

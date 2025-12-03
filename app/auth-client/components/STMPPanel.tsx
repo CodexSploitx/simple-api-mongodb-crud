@@ -4,8 +4,9 @@ import React, { useEffect, useState } from "react";
 import SMTPSettingsModal from "./SMTP/SMTPSettingsModal";
 import TemplatesModal from "./Templates/TemplatesModal";
 import TemplatesList from "./Templates/TemplatesList";
+import STMPEvents from "@/app/auth-client/components/STMPEvents";
 
-export default function STPMPanel() {
+export default function STMPPanel() {
   const [senderEmail, setSenderEmail] = useState("");
   const [senderName, setSenderName] = useState("");
   const [host, setHost] = useState("");
@@ -19,14 +20,14 @@ export default function STPMPanel() {
   const [credentialsSet, setCredentialsSet] = useState(false);
   const [showSmtpModal, setShowSmtpModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<"smtp"|"templates">("smtp");
+  const [activeTab, setActiveTab] = useState<"smtp"|"templates"|"events">("smtp");
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       setError("");
       try {
-        const r = await fetch("/api/stpm/config", { credentials: "include" });
+        const r = await fetch("/api/stmp/config", { credentials: "include" });
         const j = await r.json();
         if (j?.success && j?.data) {
           setSenderEmail(j.data.senderEmail || "");
@@ -56,7 +57,7 @@ export default function STPMPanel() {
       };
       if (username.trim().length > 0) payload.username = username.trim();
       if (password.trim().length > 0) payload.password = password.trim();
-      const r = await fetch("/api/stpm/config", {
+      const r = await fetch("/api/stmp/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -80,7 +81,7 @@ export default function STPMPanel() {
 
   return (
     <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-6">
-      <h2 className="text-lg font-semibold text-[var(--text)] mb-2">STPM</h2>
+      <h2 className="text-lg font-semibold text-[var(--text)] mb-2">SMTP</h2>
       <p className="text-sm text-[var(--text-muted)] mb-4">Configure your SMTP provider to send emails.</p>
       {error && (
         <div className="mb-4 text-sm text-red-500">{error}</div>
@@ -92,6 +93,7 @@ export default function STPMPanel() {
         <div className="flex gap-4 border-b border-[var(--border)] mb-4">
           <button onClick={()=>setActiveTab("templates")} className={`px-2 py-1 text-sm ${activeTab==='templates' ? 'text-[var(--text)] border-b-2 border-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>Templates</button>
           <button onClick={()=>setActiveTab("smtp")} className={`px-2 py-1 text-sm ${activeTab==='smtp' ? 'text-[var(--text)] border-b-2 border-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>SMTP Settings</button>
+          <button onClick={()=>setActiveTab("events")} className={`px-2 py-1 text-sm ${activeTab==='events' ? 'text-[var(--text)] border-b-2 border-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>Events</button>
         </div>
       </div>
       {activeTab === "smtp" && (
@@ -143,6 +145,9 @@ export default function STPMPanel() {
 
       {activeTab === "templates" && (
         <TemplatesList onSelect={({ eventKey }) => { setShowTemplatesModal(true); setSelectedEvent(eventKey); }} />
+      )}
+      {activeTab === "events" && (
+        <STMPEvents />
       )}
       <SMTPSettingsModal isOpen={showSmtpModal} onClose={()=>setShowSmtpModal(false)} />
       <TemplatesModal isOpen={showTemplatesModal} onClose={()=>setShowTemplatesModal(false)} initialEventKey={selectedEvent || null} />

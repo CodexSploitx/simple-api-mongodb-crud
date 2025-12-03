@@ -6,7 +6,7 @@ import { checkAccess, fetchUsers } from "./utils/adminAuth";
 import { getThemeStyles } from "@/styles/colors";
 import UsersPanel from "./components/UsersPanel";
 import { Cog6ToothIcon, UsersIcon, ArrowPathIcon, PowerIcon } from "@heroicons/react/24/outline";
-import STPMPanel from "./components/STPMPanel";
+import STMPPanel from "./components/STMPPanel";
 
 export default function AuthClientAdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -14,11 +14,11 @@ export default function AuthClientAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"users" | "stpm">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "stmp">("users");
 
-  const tabs: { id: "users" | "stpm"; label: string; section: string; icon: React.ReactNode }[] = [
+  const tabs: { id: "users" | "stmp"; label: string; section: string; icon: React.ReactNode }[] = [
     { id: "users", label: "Users", section: "Manage", icon: <UsersIcon className="w-4 h-4" /> },
-    { id: "stpm", label: "STPM", section: "Configuration", icon: <Cog6ToothIcon className="w-4 h-4" /> },
+    { id: "stmp", label: "SMTP", section: "Configuration", icon: <Cog6ToothIcon className="w-4 h-4" /> },
   ];
 
   const handleLogout = useCallback(async () => {
@@ -128,7 +128,7 @@ export default function AuthClientAdminPage() {
               {(() => {
                 const headers = {
                   users: { title: "Auth Client", subtitle: "User management panel" },
-                  stpm: { title: "STPM", subtitle: "STPM email notifications" },
+                  stmp: { title: "SMTP", subtitle: "SMTP email notifications" },
                 } as const;
                 const { title, subtitle } = headers[activeTab];
                 return (
@@ -153,8 +153,8 @@ export default function AuthClientAdminPage() {
               />
             )}
             
-            {/* STPM PANEL */}
-            {activeTab === "stpm" && <STPMPanel />}
+            {/* STMP PANEL */}
+            {activeTab === "stmp" && <STMPPanel />}
         </main>
       </div>
     </div>

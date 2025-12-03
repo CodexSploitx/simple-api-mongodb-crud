@@ -25,7 +25,7 @@ export default function SMTPSettingsModal({ isOpen, onClose }: Props) {
     const load = async () => {
       setError("");
       try {
-        const r = await fetch("/api/stpm/config", { credentials: "include" });
+        const r = await fetch("/api/stmp/config", { credentials: "include" });
         const j = await r.json();
         if (j?.success && j?.data) {
           setSenderEmail(j.data.senderEmail || "");
@@ -55,7 +55,7 @@ export default function SMTPSettingsModal({ isOpen, onClose }: Props) {
       };
       if (username.trim().length > 0) payload.username = username.trim();
       if (password.trim().length > 0) payload.password = password.trim();
-      const r = await fetch("/api/stpm/config", {
+      const r = await fetch("/api/stmp/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
