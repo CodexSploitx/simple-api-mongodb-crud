@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { getCollection } from "@/lib/mongo";
-import { getStpmEnv, decryptSecret } from "@/lib/stmp";
+import { getStmpEnv, decryptSecret } from "@/lib/stmp";
 
 export async function getSmtpTransport(): Promise<nodemailer.Transporter | null> {
   const { db, collection } = getStmpEnv();

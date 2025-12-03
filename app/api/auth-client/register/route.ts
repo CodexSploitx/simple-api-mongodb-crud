@@ -6,7 +6,7 @@ import { corsHeaders } from "@/lib/cors";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
-import { getStpmEnv } from "@/lib/stmp";
+import { getStmpEnv } from "@/lib/stmp";
 
 const DB_NAME = process.env.AUTH_CLIENT_DB || "authclient";
 const COLLECTION_NAME = process.env.AUTH_CLIENT_COLLECTION || "users";

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCollection } from "@/lib/mongo";
 import { requireAuthClientAdmin, type RequireAuthClientError } from "@/lib/auth";
 import { z } from "zod";
-import { getStpmEnv } from "@/lib/stmp";
+import { getStmpEnv } from "@/lib/stmp";
 
 const TemplateSchema = z.object({
   eventKey: z.string().min(1).max(64),
