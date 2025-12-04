@@ -4,7 +4,7 @@ import { findDocuments } from "../../../services/crudService";
 import { validateHttpMethod } from "../../../lib/httpMethodValidator";
 import { validateForQuery } from "../../../lib/mongo";
 import { FindRequest, FindResponse, ErrorResponse, SuccessResponse } from "../../../types/mongo";
-import { requireAuthClient, isAuthClientModeEnabled, type RequireAuthClientOk, type RequireAuthClientError } from "../../../lib/auth";
+import { requireAuthClient, isAuthClientModeEnabled, type RequireAuthClientOk} from "../../../lib/auth";
 
 export async function POST(
   request: NextRequest
@@ -18,11 +18,11 @@ export async function POST(
     let authClientOk: RequireAuthClientOk | null = null;
     if (useAuthClient) {
       const rc = await requireAuthClient(request);
-      if (!rc.ok) return (rc as RequireAuthClientError).response as NextResponse<ErrorResponse>;
-      authClientOk = rc as RequireAuthClientOk;
-    } else {
-      const systemAuth = await authToken(request, "find");
-      if (systemAuth !== null) return systemAuth;
+      if (rc.ok) authClientOk = rc as RequireAuthClientOk;
+    }
+    const systemAuth = await authToken(request, "find");
+    if (systemAuth !== null && !authClientOk) {
+      return systemAuth;
     }
 
     // Parsear el cuerpo de la solicitud

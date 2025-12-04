@@ -4,7 +4,7 @@ import { authToken } from "../../../middleware/authToken";
 import { validateJsonBodyMiddleware } from "../../../lib/requestValidation";
 import { z, ZodError } from "zod";
 import { ApiResponse } from "../../../types/mongo.d";
-import { requireAuthClient, isAuthClientModeEnabled, type RequireAuthClientOk, type RequireAuthClientError } from "../../../lib/auth";
+import { requireAuthClient, isAuthClientModeEnabled, type RequireAuthClientOk} from "../../../lib/auth";
 
 const insertOneRequestSchema = z.object({
   db: z
@@ -31,11 +31,11 @@ export async function POST(req: NextRequest) {
     let authClientOk: RequireAuthClientOk | null = null;
     if (useAuthClient) {
       const rc = await requireAuthClient(req);
-      if (!rc.ok) return (rc as RequireAuthClientError).response;
-      authClientOk = rc as RequireAuthClientOk;
-    } else {
-      const systemAuth = await authToken(req, "register");
-      if (systemAuth !== null) return systemAuth;
+      if (rc.ok) authClientOk = rc as RequireAuthClientOk;
+    }
+    const systemAuth = await authToken(req, "register");
+    if (systemAuth !== null && !authClientOk) {
+      return systemAuth;
     }
 
     // Validate JSON body using our new utility

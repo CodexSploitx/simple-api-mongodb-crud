@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { deleteOneDocument } from '../../../services/crudService';
 import { authToken } from '../../../middleware/authToken';
 import type { DeleteOneRequest, ApiResponse, DeleteOneResponse } from '../../../types/mongo';
-import { requireAuthClient, isAuthClientModeEnabled, type RequireAuthClientOk, type RequireAuthClientError } from '../../../lib/auth';
+import { requireAuthClient, isAuthClientModeEnabled, type RequireAuthClientOk } from '../../../lib/auth';
 
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
@@ -10,11 +10,11 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     let authClientOk: RequireAuthClientOk | null = null;
     if (useAuthClient) {
       const rc = await requireAuthClient(request);
-      if (!rc.ok) return (rc as RequireAuthClientError).response;
-      authClientOk = rc as RequireAuthClientOk;
-    } else {
-      const systemAuth = await authToken(request, 'delete');
-      if (systemAuth !== null) return systemAuth;
+      if (rc.ok) authClientOk = rc as RequireAuthClientOk;
+    }
+    const systemAuth = await authToken(request, 'delete');
+    if (systemAuth !== null && !authClientOk) {
+      return systemAuth;
     }
 
     // Parsear el cuerpo de la solicitud

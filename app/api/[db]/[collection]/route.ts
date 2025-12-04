@@ -5,7 +5,7 @@ import { validateForQuery } from "@/lib/mongo";
 import { validateHttpMethod, getRoutePattern } from "@/lib/httpMethodValidator";
 import type { ErrorResponse, SuccessResponse } from "@/types/mongo";
 import { Document } from "mongodb";
-import { requireAuthClient, isAuthClientModeEnabled, type RequireAuthClientOk, type RequireAuthClientError } from "@/lib/auth";
+import { requireAuthClient, isAuthClientModeEnabled, type RequireAuthClientOk } from "@/lib/auth";
 
 interface RouteParams {
   params: Promise<{
@@ -42,11 +42,11 @@ export async function GET(
     let authClientOk: RequireAuthClientOk | null = null;
     if (useAuthClient) {
       const rc = await requireAuthClient(req);
-      if (!rc.ok) return (rc as RequireAuthClientError).response as NextResponse<ErrorResponse>;
-      authClientOk = rc as RequireAuthClientOk;
-    } else {
-      const systemAuth = await authToken(req, "find");
-      if (systemAuth !== null) return systemAuth as NextResponse<ErrorResponse>;
+      if (rc.ok) authClientOk = rc as RequireAuthClientOk;
+    }
+    const systemAuth = await authToken(req, "find");
+    if (systemAuth !== null && !authClientOk) {
+      return systemAuth as NextResponse<ErrorResponse>;
     }
 
     // 3. Await params antes de usar sus propiedades
