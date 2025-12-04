@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCollection } from "./mongo";
 import { ObjectId } from "mongodb";
 
-const JWT_SECRET = process.env.JWT_AUTH_CLIENT || process.env.JWT_SECRET || "default-secret-key";
+const JWT_SECRET = process.env.JWT_AUTH_CLIENT || process.env.JWT_SECRET || "8WAxXh6RzphxADgl2D7PYpOUoiUvkma6kmKF7HWJ92AgKaIDApxrjmWU7M0VZYkj";
 const ACCESS_TOKEN_EXPIRES_IN = "15m";
 const REFRESH_TOKEN_EXPIRES_IN = "7d";
 const REAUTH_TOKEN_EXPIRES_IN = "5m";
