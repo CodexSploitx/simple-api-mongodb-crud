@@ -38,7 +38,14 @@ export function originAllowed(origin: string | null, allowed: string[]): boolean
   if (!origin) return true; // same-origin or non-browser clients; do not enforce here
   const o = normalizeOrigin(origin);
   const set = new Set(allowed.map((a) => normalizeOrigin(a)));
-  return set.size === 0 || set.has(o);
+  if (set.size === 0 || set.has(o)) return true;
+  // Fallback: allow by host regardless of protocol (http/https)
+  const hostOf = (s: string): string => {
+    try { return new URL(s).host.toLowerCase(); } catch { return s.replace(/^https?:\/\//, "").replace(/\/+$/, "").toLowerCase(); }
+  };
+  const host = hostOf(o);
+  const allowedHosts = new Set(Array.from(set).map(hostOf));
+  return allowedHosts.has(host);
 }
 
 export function corsHeaders(origin: string | null, enabled: boolean, allowed: string[]) {

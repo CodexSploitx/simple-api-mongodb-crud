@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const allowed = await getAllowedCorsOrigins();
   const headers = corsHeaders(origin, enabled, allowed);
   if (enabled && !originAllowed(origin, allowed)) {
-    return NextResponse.json({ success: false, error: "Origin not allowed" }, { status: 403, headers });
+    return NextResponse.json({ success: false, error: "Blocked by CORS: Origin not allowed" }, { status: 403, headers });
   }
 
   try {

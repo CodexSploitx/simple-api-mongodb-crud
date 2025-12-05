@@ -13,14 +13,15 @@ export default function RegistrationChart({ users, range = "7d", headerRight }: 
   const series = useMemo(() => {
     if (range === "1d") {
       const today = new Date();
-      const dayKey = today.toISOString().slice(0, 10);
+      const y = today.getFullYear();
+      const m = today.getMonth();
+      const d0 = today.getDate();
       const hours = Array.from({ length: 24 }, (_, h) => h);
       const buckets: Record<number, number> = Object.fromEntries(hours.map((h) => [h, 0]));
       users.forEach((u) => {
         const d = new Date(u.createdAt as unknown as string);
         if (isNaN(d.getTime())) return;
-        const key = d.toISOString().slice(0, 10);
-        if (key !== dayKey) return;
+        if (d.getFullYear() !== y || d.getMonth() !== m || d.getDate() !== d0) return;
         buckets[d.getHours()] = (buckets[d.getHours()] || 0) + 1;
       });
       const labels = hours.map((h) => String(h).padStart(2, "0"));
@@ -35,11 +36,18 @@ export default function RegistrationChart({ users, range = "7d", headerRight }: 
     const start = new Date(end);
     start.setDate(end.getDate() - (days - 1));
 
+    const fmt = (d: Date) => {
+      const yy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yy}-${mm}-${dd}`;
+    };
+
     const buckets: { [key: string]: number } = {};
     for (let i = 0; i < days; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
-      const key = d.toISOString().slice(0, 10);
+      const key = fmt(d);
       buckets[key] = 0;
     }
 
@@ -47,7 +55,7 @@ export default function RegistrationChart({ users, range = "7d", headerRight }: 
       const created = new Date(u.createdAt as unknown as string);
       if (isNaN(created.getTime())) return;
       created.setHours(0, 0, 0, 0);
-      const key = created.toISOString().slice(0, 10);
+      const key = fmt(created);
       if (key in buckets) buckets[key] += 1;
     });
 
@@ -78,8 +86,11 @@ export default function RegistrationChart({ users, range = "7d", headerRight }: 
         {series.values.map((v, i) => {
           const heightPct = Math.round((v / series.max) * 100);
           return (
-            <div key={i} className="flex flex-col items-center" style={{ width: `${100 / series.values.length}%` }}>
-              <div className="w-full rounded-t-sm bg-[var(--accent)] hover:bg-[var(--accent-hover)]" style={{ height: `${heightPct}%` }} title={`${series.labels[i]}: ${v}`} />
+            <div key={i} className="flex flex-col items-center h-full" style={{ width: `${100 / series.values.length}%` }}>
+              {v > 0 && (
+                <div className="text-[10px] text-[var(--text)] mb-1">{v}</div>
+              )}
+              <div className="w-full rounded-t-sm bg-[var(--accent)] hover:bg-[var(--accent-hover)]" style={{ height: heightPct === 0 ? "2px" : `${heightPct}%` }} title={`${series.labels[i]}: ${v}`} />
               <div className="mt-1 text-[10px] text-[var(--text-muted)]">{series.labels[i]}</div>
             </div>
           );
