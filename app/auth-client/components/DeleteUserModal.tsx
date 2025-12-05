@@ -194,7 +194,7 @@ export default function DeleteUserModal({ isOpen, user, onClose, onConfirm }: De
         {result && (
           <div className="mt-4">
             <div className="text-sm text-[var(--text)]">Resultado</div>
-            <div className="text-sm text-[var(--text-muted)] mb-2">{result.message || (result.success ? "Operación completada" : "Error en la operación")}</div>
+            <div className="text-sm text-[var(--text-muted)] mb-2">{result.success ? (result.message || "Operación completada") : (result.error || result.message || "Error en la operación")}</div>
             {typeof result.totalDeleted === "number" && (
               <div className="text-sm text-[var(--text)] mb-2">Total eliminados: {result.totalDeleted}</div>
             )}

@@ -5,6 +5,7 @@ import { corsHeaders, isCorsEnabled, getAllowedCorsOrigins, originAllowed } from
 import { hashPassword } from "@/lib/auth";
 import { requireAuthClientAdmin } from "@/lib/auth";
 import { ObjectId } from "mongodb";
+import { z } from "zod";
 
 const DB_NAME = process.env.AUTH_CLIENT_DB || "authclient";
 const COLLECTION_NAME = process.env.AUTH_CLIENT_COLLECTION || "users";
@@ -43,19 +44,25 @@ export async function DELETE(
     const { id } = await params;
     const usersCol = await getCollection(DB_NAME, COLLECTION_NAME);
 
-    interface DeleteBodyOptions {
-      mode?: "delete_all" | "delete_some" | "keep_all_delete_only_auth";
-      archive?: boolean;
-      fields?: { ownerId: boolean; userId: boolean };
-      targets?: Array<{ db: string; collections: string[]; fields: ("ownerId"|"userId")[] }>;
-    }
+    const DeleteBodySchema = z.object({
+      mode: z.enum(["delete_all", "delete_some", "keep_all_delete_only_auth"]).optional(),
+      archive: z.boolean().optional(),
+      fields: z.object({ ownerId: z.boolean(), userId: z.boolean() }).optional(),
+      targets: z.array(z.object({
+        db: z.string(),
+        collections: z.array(z.string()),
+        fields: z.array(z.enum(["ownerId", "userId"]))
+      })).optional()
+    });
 
-    let body: DeleteBodyOptions | null = null;
+    let body: z.infer<typeof DeleteBodySchema> | null = null;
     try {
-      body = await request.json();
+      const json = await request.json();
+      const parsed = DeleteBodySchema.safeParse(json);
+      if (parsed.success) body = parsed.data;
     } catch {}
 
-    const mode = body?.mode || undefined;
+    const mode = body?.mode ?? "delete_all";
 
     const targets = Array.isArray(body?.targets) ? body!.targets : undefined;
 
@@ -127,6 +134,8 @@ export async function DELETE(
             } catch {}
           }
         }
+      } catch {
+        // swallow errors to allow user deletion to proceed
       } finally {
         if (client) { try { await client.close(); } catch {} }
       }
@@ -141,10 +150,10 @@ export async function DELETE(
         await client.connect();
         for (const t of items) {
           const db = client.db(t.db);
-      const or: Array<{ ownerId?: string; userId?: string }> = [];
-      if (t.fields.includes("ownerId")) or.push({ ownerId: id });
-      if (t.fields.includes("userId")) or.push({ userId: id });
-      if (or.length === 0) continue;
+          const or: Array<{ ownerId?: string; userId?: string }> = [];
+          if (t.fields.includes("ownerId")) or.push({ ownerId: id });
+          if (t.fields.includes("userId")) or.push({ userId: id });
+          if (or.length === 0) continue;
           for (const colName of t.collections) {
             const skipCols = new Set<string>([
               process.env.AUTH_CLIENT_COLLECTION || "users",
@@ -160,6 +169,8 @@ export async function DELETE(
             } catch {}
           }
         }
+      } catch {
+        // swallow errors to allow user deletion to proceed
       } finally {
         if (client) { try { await client.close(); } catch {} }
       }
