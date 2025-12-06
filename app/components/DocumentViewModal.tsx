@@ -36,9 +36,7 @@ const DocumentViewModal: React.FC<DocumentViewModalProps> = ({
   const [exact, setExact] = useState(false);
   const [caseSensitive, setCaseSensitive] = useState(false);
 
-  if (!doc) return null;
-
-  const jsonText = useMemo(() => JSON.stringify(doc, null, 2), [doc]);
+  const jsonText = useMemo(() => (doc ? JSON.stringify(doc, null, 2) : ""), [doc]);
 
   const { highlightedHtml, matchCount } = useMemo(() => {
     const base = escapeHtml(jsonText);
@@ -51,6 +49,8 @@ const DocumentViewModal: React.FC<DocumentViewModalProps> = ({
     });
     return { highlightedHtml: html, matchCount: count };
   }, [jsonText, query, exact, caseSensitive]);
+
+  if (!doc) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">

@@ -107,7 +107,7 @@ const DocumentGrid: React.FC<DocumentGridProps> = ({
           </div>
 
           {(() => {
-            const { preview, truncated } = makePreview(doc);
+            const { preview } = makePreview(doc);
             return (
               <div>
                 <pre

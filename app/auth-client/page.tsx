@@ -120,12 +120,12 @@ export default function AuthClientAdminPage() {
               </button>
             ))}
             <div className="mt-4 flex items-center gap-2">
-              <button onClick={loadUsers} className="flex-1 px-3 py-2 rounded-md bg-[var(--surface)] hover:bg-[var(--border)] text-[var(--text)] border border-[var(--border)] text-sm flex items-center justify-center gap-2" disabled={loading}>
-                <ArrowPathIcon className="w-4 h-4" />
+              <button onClick={loadUsers} className="px-2 py-1 rounded bg-transparent hover:bg-[var(--surface)] text-[var(--text-muted)] border border-[var(--border)]/50 text-xs flex items-center justify-center gap-1" disabled={loading}>
+                <ArrowPathIcon className="w-3 h-3" />
                 <span>{loading ? "Updating" : "Update"}</span>
               </button>
-              <button onClick={handleLogout} className="px-3 py-2 rounded-md bg-[var(--danger)] hover:bg-red-600 text-white text-sm flex items-center gap-2">
-                <PowerIcon className="w-4 h-4" />
+              <button onClick={handleLogout} className="px-2 py-1 rounded bg-transparent hover:bg-red-900/10 text-[var(--danger)] text-xs flex items-center gap-1">
+                <PowerIcon className="w-3 h-3" />
                 <span>Logout</span>
               </button>
             </div>

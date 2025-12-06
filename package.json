@@ -24,7 +24,8 @@
     "test:auth-client": "npx tsx app/api/auth-client/scripts/test.ts",
     "test:magic-link": "npx tsx app/api/auth-client/scripts/Magiclink.test.ts",
     "test:change-email": "npx tsx app/api/auth-client/scripts/ChangeEmail.test.ts",
-    "test:reset-password": "npx tsx app/api/auth-client/scripts/ResetPassword.test.ts"
+    "test:reset-password": "npx tsx app/api/auth-client/scripts/ResetPassword.test.ts",
+    "test:create-users": "npx tsx app/api/auth-client/scripts/CreateTestUsers.test.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

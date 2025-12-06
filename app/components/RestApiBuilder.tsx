@@ -1,7 +1,7 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { getThemeStyles, getUIClasses } from "@/styles/colors";
-import { CircleStackIcon, DocumentTextIcon, CloudArrowDownIcon, DocumentDuplicateIcon, CheckIcon, HomeIcon } from "@heroicons/react/24/outline";
+import { DocumentTextIcon, CloudArrowDownIcon, DocumentDuplicateIcon, CheckIcon, HomeIcon } from "@heroicons/react/24/outline";
 
 type DbIndex = Record<string, true>;
 
@@ -11,7 +11,6 @@ const RestApiBuilder: React.FC = () => {
   const { cardClasses, inputClasses, buttonClasses } = getUIClasses();
 
   const [mode, setMode] = useState<"general" | "custom">("general");
-  const [dbIndex, setDbIndex] = useState<DbIndex>({});
   const [loading, setLoading] = useState(false);
   const [selectedDb, setSelectedDb] = useState<string>("");
   const [selectedCollection, setSelectedCollection] = useState<string>("");
@@ -37,7 +36,6 @@ const RestApiBuilder: React.FC = () => {
         const res = await fetch("/api/mongodb-list", { cache: "no-store", credentials: "include" });
         if (!res.ok) return;
         const json: DbIndex = await res.json();
-        setDbIndex(json);
         setDbNames(Object.keys(json).sort());
       } finally {
         setLoading(false);

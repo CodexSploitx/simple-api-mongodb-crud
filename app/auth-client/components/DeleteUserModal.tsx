@@ -26,7 +26,7 @@ interface DeleteUserModalProps {
   onResult?: (res: DeleteUserResponse) => void;
 }
 
-export default function DeleteUserModal({ isOpen, user, onClose, onConfirm }: DeleteUserModalProps) {
+export default function DeleteUserModal({ isOpen, user, onClose, onConfirm, onResult }: DeleteUserModalProps) {
   const [mode, setMode] = useState<DeleteMode>("delete_all");
   const [databases, setDatabases] = useState<string[]>([]);
   const [loadingDbs, setLoadingDbs] = useState(false);
@@ -109,6 +109,7 @@ export default function DeleteUserModal({ isOpen, user, onClose, onConfirm }: De
     try {
       const res = await onConfirm(opts);
       setResult(res);
+      onResult?.(res);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error desconocido");
     } finally {
@@ -122,7 +123,7 @@ export default function DeleteUserModal({ isOpen, user, onClose, onConfirm }: De
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-xl w-full max-w-3xl mx-4 p-6">
         <h3 className="text-xl font-semibold text-[var(--text)] mb-3">Delete User</h3>
-        <p className="text-[var(--text-muted)] mb-4">Select how to proceed with related data for &quot;{user.username}&quot;.</p>
+        <p className="text-[var(--text-muted)] mb-4">Select how to proceed with related data for &ldquo;<span className="text-[var(--danger)] font-semibold">{user.username}</span>&rdquo;.</p>
 
         {!result && (
         <div className="space-y-3 mb-4">
@@ -149,8 +150,8 @@ export default function DeleteUserModal({ isOpen, user, onClose, onConfirm }: De
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="border border-[var(--border)] rounded-md p-3">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-medium text-[var(--text)]">Bases de datos</div>
-                {loadingDbs && <div className="text-xs text-[var(--text-muted)]">Cargando...</div>}
+                <div className="text-sm font-medium text-[var(--text)]">Databases</div>
+                {loadingDbs && <div className="text-xs text-[var(--text-muted)]">Loading...</div>}
               </div>
               <div className="max-h-56 overflow-auto space-y-1">
                 {databases.map((db) => (
