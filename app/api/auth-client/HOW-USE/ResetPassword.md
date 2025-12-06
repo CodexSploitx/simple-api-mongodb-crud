@@ -1,99 +1,99 @@
-# Reset Password (Auth‑Client)
+# Reset Password (Auth-Client)
 
-Permite a los usuarios restablecer su contraseña mediante un código OTP enviado por correo.
-Soporta dos modos:
-- No autenticado (forgot password)
-- Autenticado (usuario logueado)
+Allows users to reset their password using an OTP sent via email.
+Supports two modes:
+- Unauthenticated (forgot password)
+- Authenticated (logged-in user)
 
-## Requisitos
-- Usuario existente en `AUTH_CLIENT_DB`.`AUTH_CLIENT_COLLECTION`.
-- Evento `reset_password` activo en SMTP (toggle obligatorio).
-- Plantilla activa para `reset_password` (se autogenera default si no existe).
+## Requirements
+- User exists in `AUTH_CLIENT_DB`.`AUTH_CLIENT_COLLECTION`.
+- `reset_password` event active in SMTP (required toggle).
+- Active template for `reset_password` (default is auto-generated if missing).
 
-## Toggle y plantillas
-- Activación: `POST /api/stmp/events` con `{ "eventKey": "reset_password", "active": true }`.
-- Al activar, si no hay plantilla activa, se crea una por defecto con OTP.
-- Implementación default: `app/api/stmp/events/route.ts:132-141`.
+## Toggle and templates
+- Activation: `POST /api/stmp/events` with `{ "eventKey": "reset_password", "active": true }`.
+- When activating, if no active template exists, a default with OTP is created.
+- Default implementation: `app/api/stmp/events/route.ts:132-141`.
 
-### Placeholders soportados
-- `{{ .EmailUSer }}`: email del usuario
-- `{{ .UserName }}`: nombre a mostrar
-- `{{ .CodeConfirmation }}`: código OTP de 6 dígitos
-- `{{ .SiteURL }}`: URL base del sitio/API
-- `{{ ._id }}`: id del usuario
-- `{{ .Token }}`: no recomendado; si aparece, se reemplaza por el mismo OTP
-  - Reemplazo en no autenticado: `app/api/auth-client/reset-password/request/route.ts:65-73`
-  - Reemplazo en autenticado: `app/api/auth-client/reset-password/request-auth/route.ts:67-75`
+### Supported placeholders
+- `{{ .EmailUSer }}`: user's email
+- `{{ .UserName }}`: display name
+- `{{ .CodeConfirmation }}`: 6-digit OTP code
+- `{{ .SiteURL }}`: site/API base URL
+- `{{ ._id }}`: user ID
+- `{{ .Token }}`: not recommended; if present, it maps to the same OTP
+  - Unauthenticated replacement: `app/api/auth-client/reset-password/request/route.ts:65-73`
+  - Authenticated replacement: `app/api/auth-client/reset-password/request-auth/route.ts:67-75`
 
-## Flujo: No autenticado (forgot password)
-1) Solicitar OTP
+## Flow: Unauthenticated (forgot password)
+1) Request OTP
 - `POST /api/auth-client/reset-password/request`
 - Body: `{ "email": "user@example.com" }`
-- Responde `200 { success: true }` (evita enumeración).
-- Implementación: generación OTP y envío email
+- Returns `200 { success: true }` (avoids enumeration).
+- Implementation: OTP generation and email send
   - OTP insert: `app/api/auth-client/reset-password/request/route.ts:45-53`
-  - Envío y outbox: `app/api/auth-client/reset-password/request/route.ts:82-90`
+  - Outbox and send: `app/api/auth-client/reset-password/request/route.ts:82-90`
 
-2) Confirmar OTP y establecer nueva contraseña
+2) Confirm OTP and set new password
 - `POST /api/auth-client/reset-password/confirm`
-- Body: `{ "email": "user@example.com", "code": "123456", "newPassword": "NuevaPass123!" }`
-- Valida código vigente, marca OTP usado, actualiza `password` hash y revoca tokens (`tokenVersion +1`).
-- Implementación: `app/api/auth-client/reset-password/confirm/route.ts:32-55`
+- Body: `{ "email": "user@example.com", "code": "123456", "newPassword": "NewPass123!" }`
+- Validates OTP, marks it as used, updates password hash and revokes tokens (`tokenVersion +1`).
+- Implementation: `app/api/auth-client/reset-password/confirm/route.ts:32-55`
 
-## Flujo: Autenticado
-1) Solicitar OTP (envía al email del usuario autenticado)
-- `POST /api/auth-client/reset-password/request-auth` con Bearer `accessToken` del Auth‑Client
-- Body: vacío
-- Implementación
+## Flow: Authenticated
+1) Request OTP (sends to the authenticated user's email)
+- `POST /api/auth-client/reset-password/request-auth` with Auth-Client Bearer `accessToken`
+- Body: none
+- Implementation
   - OTP insert: `app/api/auth-client/reset-password/request-auth/route.ts:43-51`
-  - Envío y outbox: `app/api/auth-client/reset-password/request-auth/route.ts:86-94`
+  - Outbox and send: `app/api/auth-client/reset-password/request-auth/route.ts:86-94`
 
-2) Confirmar OTP y cambiar contraseña
-- `POST /api/auth-client/reset-password/confirm-auth` con Bearer `accessToken`
-- Body: `{ "code": "123456", "newPassword": "NuevaPass123!" }`
-- Valida OTP, actualiza `password` y revoca tokens; emite nuevos tokens.
-- Implementación: `app/api/auth-client/reset-password/confirm-auth/route.ts:28-73`
+2) Confirm OTP and change password
+- `POST /api/auth-client/reset-password/confirm-auth` with Bearer `accessToken`
+- Body: `{ "code": "123456", "newPassword": "NewPass123!" }`
+- Validates OTP, updates password, revokes tokens; issues new tokens.
+- Implementation: `app/api/auth-client/reset-password/confirm-auth/route.ts:28-73`
 
-## Configuración de OTP
-- TTL: `otpTtlSeconds` (por defecto 600 s)
-- Intentos máximos: `otpMaxAttempts` (por defecto 5)
-- Leído desde `stmpdb.config` en los endpoints de request/confirm.
+## OTP settings
+- TTL: `otpTtlSeconds` (default 600s)
+- Max attempts: `otpMaxAttempts` (default 5)
+- Read from `stmpdb.config` in request/confirm endpoints.
 
-## Respuestas y errores comunes
+## Responses and common errors
 - `400 { error: "Invalid email" | "Invalid code" | "Weak password" }`
-- `400 { error: "Reset password deactivated: event not active" }` si el evento está desactivado.
+- `400 { error: "Reset password deactivated: event not active" }` if event is disabled.
 - `404 { error: "User not found" | "Code not found" }`
 - `410 { error: "Code expired" }`
 - `429 { error: "Too many attempts" }`
 
-## Ejemplos
-- Solicitar OTP (no autenticado):
+## Examples
+- Request OTP (unauthenticated):
 ```bash
 curl -X POST "http://localhost:3000/api/auth-client/reset-password/request" \
   -H "Content-Type: application/json" \
   -d '{ "email": "user@example.com" }'
 ```
-- Confirmar OTP (no autenticado):
+- Confirm OTP (unauthenticated):
 ```bash
 curl -X POST "http://localhost:3000/api/auth-client/reset-password/confirm" \
   -H "Content-Type: application/json" \
-  -d '{ "email": "user@example.com", "code": "123456", "newPassword": "NuevaPass123!" }'
+  -d '{ "email": "user@example.com", "code": "123456", "newPassword": "NewPass123!" }'
 ```
-- Solicitar OTP (autenticado):
+- Request OTP (authenticated):
 ```bash
 curl -X POST "http://localhost:3000/api/auth-client/reset-password/request-auth" \
   -H "Authorization: Bearer <ACCESS_TOKEN>"
 ```
-- Confirmar OTP (autenticado):
+- Confirm OTP (authenticated):
 ```bash
 curl -X POST "http://localhost:3000/api/auth-client/reset-password/confirm-auth" \
   -H "Authorization: Bearer <ACCESS_TOKEN>" \
   -H "Content-Type: application/json" \
-  -d '{ "code": "123456", "newPassword": "NuevaPass123!" }'
+  -d '{ "code": "123456", "newPassword": "NewPass123!" }'
 ```
 
-## Buenas prácticas
-- Mantén una sola plantilla activa por evento.
-- Evita usar `{{ .Token }}`; si lo haces, será mapeado al OTP.
-- No incluir datos sensibles en el HTML.
-- Usa contraseñas robustas (mínimo 8 caracteres, mezcla de tipos).
+## Best practices
+- Keep a single active template per event.
+- Avoid using `{{ .Token }}`; if used, it maps to the OTP.
+- Do not include sensitive data in HTML.
+- Use strong passwords (min 8 chars, mix of types).

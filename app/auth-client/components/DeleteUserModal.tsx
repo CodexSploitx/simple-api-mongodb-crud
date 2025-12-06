@@ -121,22 +121,22 @@ export default function DeleteUserModal({ isOpen, user, onClose, onConfirm }: De
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-xl w-full max-w-3xl mx-4 p-6">
-        <h3 className="text-xl font-semibold text-[var(--text)] mb-3">Eliminar usuario</h3>
-        <p className="text-[var(--text-muted)] mb-4">Selecciona cómo proceder con los datos relacionados de &quot;{user.username}&quot;.</p>
+        <h3 className="text-xl font-semibold text-[var(--text)] mb-3">Delete User</h3>
+        <p className="text-[var(--text-muted)] mb-4">Select how to proceed with related data for &quot;{user.username}&quot;.</p>
 
         {!result && (
         <div className="space-y-3 mb-4">
           <label className="flex items-center gap-2">
             <input type="radio" name="delete_mode" checked={mode === "delete_all"} onChange={() => setMode("delete_all")} />
-            <span className="text-[var(--text)]">Eliminar todo en todas las bases y colecciones donde haya registros relacionados</span>
+            <span className="text-[var(--text)]">Delete all in all databases and collections where related records exist</span>
           </label>
           <label className="flex items-center gap-2">
             <input type="radio" name="delete_mode" checked={mode === "delete_some"} onChange={() => setMode("delete_some")} />
-            <span className="text-[var(--text)]">Eliminar solo en algunas bases/colecciones seleccionadas</span>
+            <span className="text-[var(--text)]">Delete only in selected databases and collections</span>
           </label>
           <label className="flex items-center gap-2">
             <input type="radio" name="delete_mode" checked={mode === "keep_all_delete_only_auth"} onChange={() => setMode("keep_all_delete_only_auth")} />
-            <span className="text-[var(--text)]">Mantener todo, eliminar solo en Auth-Client (archivar usuario)</span>
+            <span className="text-[var(--text)]">Keep all, delete only in Auth-Client (archive user)</span>
           </label>
         </div>
         )}
@@ -159,14 +159,14 @@ export default function DeleteUserModal({ isOpen, user, onClose, onConfirm }: De
                     <span className="text-[var(--text)]">{db}</span>
                   </label>
                 ))}
-                {databases.length === 0 && <div className="text-sm text-[var(--text-muted)]">Sin bases disponibles</div>}
+                {databases.length === 0 && <div className="text-sm text-[var(--text-muted)]">No databases available</div>}
               </div>
             </div>
             <div className="border border-[var(--border)] rounded-md p-3">
-              <div className="text-sm font-medium text-[var(--text)] mb-2">Colecciones</div>
+              <div className="text-sm font-medium text-[var(--text)] mb-2">Collections</div>
               <div className="max-h-56 overflow-auto space-y-3">
                 {Object.keys(selectedTargets).length === 0 && (
-                  <div className="text-sm text-[var(--text-muted)]">Selecciona una base para ver colecciones</div>
+                  <div className="text-sm text-[var(--text-muted)]">Select a database to view collections</div>
                 )}
                 {Object.entries(selectedTargets).map(([db, sel]) => (
                   <div key={db}>
@@ -181,25 +181,25 @@ export default function DeleteUserModal({ isOpen, user, onClose, onConfirm }: De
                       ))}
                     </div>
                     {!hasSomeSelection && (
-                      <div className="text-xs text-[var(--warning)] mt-2">Selecciona al menos una colección</div>
+                      <div className="text-xs text-[var(--warning)] mt-2">Select at least one collection</div>
                     )}
                   </div>
                 ))}
               </div>
-              <div className="mt-3 text-xs text-[var(--text-muted)]">Este modo archivará al usuario antes de eliminar en las colecciones seleccionadas.</div>
+              <div className="mt-3 text-xs text-[var(--text-muted)]">This mode will archive the user before deleting in the selected collections.</div>
             </div>
           </div>
         )}
 
         {result && (
           <div className="mt-4">
-            <div className="text-sm text-[var(--text)]">Resultado</div>
-            <div className="text-sm text-[var(--text-muted)] mb-2">{result.success ? (result.message || "Operación completada") : (result.error || result.message || "Error en la operación")}</div>
+            <div className="text-sm text-[var(--text)]">Result</div>
+            <div className="text-sm text-[var(--text-muted)] mb-2">{result.success ? (result.message || "Operation completed") : (result.error || result.message || "Error in operation")}</div>
             {typeof result.totalDeleted === "number" && (
-              <div className="text-sm text-[var(--text)] mb-2">Total eliminados: {result.totalDeleted}</div>
+              <div className="text-sm text-[var(--text)] mb-2">Total deleted: {result.totalDeleted}</div>
             )}
             {result.archived && (
-              <div className="text-sm text-[var(--text)] mb-2">Usuario archivado</div>
+              <div className="text-sm text-[var(--text)] mb-2">User archived</div>
             )}
             {Array.isArray(result.deletedByCollection) && result.deletedByCollection.length > 0 && (
               <div className="max-h-56 overflow-auto border border-[var(--border)] rounded-md p-3">
@@ -223,9 +223,9 @@ export default function DeleteUserModal({ isOpen, user, onClose, onConfirm }: De
               onClick={confirm}
               disabled={submitting || (mode === "delete_some" && !hasSomeSelection)}
               className="px-4 py-2 rounded-md bg-[var(--danger)] hover:bg-red-600 text-white disabled:opacity-50"
-              title={mode === "delete_some" && !hasSomeSelection ? "Selecciona al menos una colección" : mode === "delete_some" ? "Se archivará al usuario antes de eliminar en las colecciones seleccionadas" : undefined}
+              title={mode === "delete_some" && !hasSomeSelection ? "Select at least one collection" : mode === "delete_some" ? "User will be archived before deleting in the selected collections" : undefined}
             >
-              {submitting ? "Eliminando..." : "Eliminar"}
+              {submitting ? "Deleting..." : "Delete"}
             </button>
           )}
         </div>

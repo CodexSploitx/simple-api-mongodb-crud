@@ -7,6 +7,7 @@ import { getThemeStyles } from "@/styles/colors";
 import UsersPanel from "./components/UsersPanel";
 import { Cog6ToothIcon, UsersIcon, ArrowPathIcon, PowerIcon } from "@heroicons/react/24/outline";
 import STMPPanel from "./components/STMPPanel";
+import STMPConfiguration from "./components/STMPConfiguration";
 
 export default function AuthClientAdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -14,11 +15,12 @@ export default function AuthClientAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"users" | "stmp">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "stmp" | "cors">("users");
 
-  const tabs: { id: "users" | "stmp"; label: string; section: string; icon: React.ReactNode }[] = [
+  const tabs: { id: "users" | "stmp" | "cors"; label: string; section: string; icon: React.ReactNode }[] = [
     { id: "users", label: "Users", section: "Manage", icon: <UsersIcon className="w-4 h-4" /> },
-    { id: "stmp", label: "SMTP", section: "Configuration", icon: <Cog6ToothIcon className="w-4 h-4" /> },
+    { id: "stmp", label: "SMTP", section: "Notifications", icon: <Cog6ToothIcon className="w-4 h-4" /> },
+    { id: "cors", label: "CORS", section: "Settings", icon: <Cog6ToothIcon className="w-4 h-4" /> },
   ];
 
   const handleLogout = useCallback(async () => {
@@ -103,8 +105,15 @@ export default function AuthClientAdminPage() {
                 <span>{t.label}</span>
               </button>
             ))}
-            <div className="px-2 pt-3 pb-2 text-xs font-semibold text-[var(--text-muted)]">Configuration</div>
-            {tabs.filter(t => t.section === "Configuration").map(t => (
+            <div className="px-2 pt-3 pb-2 text-xs font-semibold text-[var(--text-muted)]">Notifications</div>
+            {tabs.filter(t => t.section === "Notifications").map(t => (
+              <button key={t.id} onClick={() => setActiveTab(t.id)} className={`w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm mb-1 border ${activeTab===t.id?"bg-[var(--surface)] border-[var(--primary)]":"bg-transparent border-transparent hover:bg-[var(--surface)]"} text-[var(--text)]`}>
+                {t.icon}
+                <span>{t.label}</span>
+              </button>
+            ))}
+            <div className="px-2 pt-3 pb-2 text-xs font-semibold text-[var(--text-muted)]">Settings</div>
+            {tabs.filter(t => t.section === "Settings").map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)} className={`w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm mb-1 border ${activeTab===t.id?"bg-[var(--surface)] border-[var(--primary)]":"bg-transparent border-transparent hover:bg-[var(--surface)]"} text-[var(--text)]`}>
                 {t.icon}
                 <span>{t.label}</span>
@@ -129,6 +138,7 @@ export default function AuthClientAdminPage() {
                 const headers = {
                   users: { title: "Auth Client", subtitle: "User management panel" },
                   stmp: { title: "SMTP", subtitle: "SMTP email notifications" },
+                  cors: { title: "CORS", subtitle: "CORS whitelist and access" },
                 } as const;
                 const { title, subtitle } = headers[activeTab];
                 return (
@@ -155,6 +165,9 @@ export default function AuthClientAdminPage() {
             
             {/* STMP PANEL */}
             {activeTab === "stmp" && <STMPPanel />}
+
+            {/* CORS SETTINGS */}
+            {activeTab === "cors" && <STMPConfiguration />}
         </main>
       </div>
     </div>

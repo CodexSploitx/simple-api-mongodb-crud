@@ -1,50 +1,50 @@
-# Pendientes de Mejora (Auth-Client)
+# Pending Improvements (Auth-Client)
 
-## Urgente (indispensable ahora)
-- Endurecer secretos: exigir `JWT_AUTH_CLIENT` y `STMP_ENCRYPTION_KEY` sin valores por defecto.
-- Unificar secretos admin: usar `JWT_AUTH_CLIENT_ADMIN` de forma consistente para login y verificación.
-- Magic link robusto: token con `crypto.randomBytes(32)` + `jti` y expiración firme; sanitización HTML al enviar.
-- OTP seguro: guardar `hash(code)` (HMAC-SHA256) y crear índice TTL sobre `expiresAt` en `STMP_OTP`.
-- Rotación de refresh: en `/api/auth-client/refresh` emitir nuevo `refreshToken`, setear cookie y preparar detección de reuse.
-- CSRF: proteger endpoints que usan cookies (`refresh`, cambio email/contraseña, acciones críticas) con double-submit u Origin-check.
+## Urgent (must-have now)
+- Harden secrets: require `JWT_AUTH_CLIENT` and `STMP_ENCRYPTION_KEY` with no defaults.
+- Unify admin secrets: consistently use `JWT_AUTH_CLIENT_ADMIN` for login and verification.
+- Robust magic link: token with `crypto.randomBytes(32)` + `jti` and firm expiry; sanitize HTML when sending.
+- Secure OTP: store `hash(code)` (HMAC-SHA256) and create TTL index on `expiresAt` in `STMP_OTP`.
+- Refresh rotation: in `/api/auth-client/refresh` issue a new `refreshToken`, set the cookie and prepare reuse detection.
+- CSRF: protect cookie-using endpoints (`refresh`, change email/password, critical actions) with double-submit or Origin-check.
 
-## Alta prioridad
-- Aislar Admin: mover `requireAuthClientAdmin` a `AUTH_CLIENT_DB` con rol propio, sin leer `permissions.*` del sistema principal.
-- JWT claims: añadir `aud`, `iss`, `sub`, `jti` y validar algoritmo HS256 explícito.
-- Password hashing: subir costo bcrypt a 12 o migrar a Argon2 si es viable.
-- Sanitización consistente: aplicar sanitización HTML en todos los envíos (incl. magic link) y centralizar en utilitario.
-- Placeholders de plantillas: validar y permitir solo `{{ .EmailUSer }}`, `{{ .UserName }}`, `{{ .CodeConfirmation }}`, `{{ .SiteURL }}`, `{{ ._id }}`; evitar `{{ .permissions.* }}` y `{{ .Token }}` salvo eventos que lo requieran.
-- Índices únicos: `users.email` y `users.username` con unique index; validar colisiones.
-- Bloqueo de login si `suspended === true` y mensajes uniformes de error.
-- Rate limit persistente: almacenar contadores por IP/usuario en DB/Redis para resiliencia y evitar bypass en multi-instancia.
+## High priority
+- Admin isolation: move `requireAuthClientAdmin` to `AUTH_CLIENT_DB` with its own role, without reading `permissions.*` from the main system.
+- JWT claims: add `aud`, `iss`, `sub`, `jti` and validate HS256 explicitly.
+- Password hashing: raise bcrypt cost to 12 or migrate to Argon2 if feasible.
+- Consistent sanitization: apply HTML sanitization to all sends (including magic link) and centralize in a utility.
+- Template placeholders: validate and only allow `{{ .EmailUSer }}`, `{{ .UserName }}`, `{{ .CodeConfirmation }}`, `{{ .SiteURL }}`, `{{ ._id }}`; avoid `{{ .permissions.* }}` and `{{ .Token }}` unless strictly required.
+- Unique indexes: `users.email` and `users.username` with unique index; validate collisions.
+- Login blocking if `suspended === true` and uniform error messages.
+- Persistent rate limit: store counters per IP/user in DB/Redis for resilience and to avoid bypass in multi-instance.
 
-## Media prioridad
-- Outbox worker: procesar `STMP_OUTBOX` con un job/worker que respete `minIntervalSeconds`, reintentos y backoff.
-- Reuse de refresh: detectar y anular sesiones si se reutiliza un refresh antiguo (token theft mitigation).
-- Reauth token: hacer `REAUTH_TOKEN_EXPIRES_IN` configurable, incluir `aud/iss/jti` y verificar acción (`action`) con mayor rigor.
-- Seguridad de cabeceras: añadir `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Content-Security-Policy` adecuada para emails y endpoints.
-- Validaciones Zod: endurecer tamaños máximos y formatos donde falten; mensajes consistentes.
-- Control de intentos OTP: `otpCooldownSeconds`, `otpMaxPerHour`, y política de una OTP activa por evento.
-- Auditoría: registrar eventos claves (login, reset, reauth, magic link, cambio email) con metadatos mínimos no sensibles.
-- Políticas de contraseñas: comprobar contraseñas comprometidas (p.ej. Pwned Passwords) opcional.
+## Medium priority
+- Outbox worker: process `STMP_OUTBOX` with a job/worker that respects `minIntervalSeconds`, retries and backoff.
+- Refresh reuse: detect and invalidate sessions if an old refresh is reused (token theft mitigation).
+- Reauth token: make `REAUTH_TOKEN_EXPIRES_IN` configurable, include `aud/iss/jti` and strictly verify `action`.
+- Security headers: add `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Content-Security-Policy` suitable for emails and endpoints.
+- Zod validations: harden max sizes and formats where missing; consistent messages.
+- OTP attempt control: `otpCooldownSeconds`, `otpMaxPerHour`, and policy of one active OTP per event.
+- Audit: log key events (login, reset, reauth, magic link, change email) with minimal non-sensitive metadata.
+- Password policies: optionally check compromised passwords (e.g., Pwned Passwords).
 
-## Baja prioridad
-- Observabilidad: métricas y logs estructurados; trazabilidad de request-id.
-- Pruebas: unitarias y e2e para login/refresh/OTP/magic link/cambio email/reauth.
-- Rendimiento: índices TTL y limpieza periódica de colecciones `otp`, `magiclinks`, `outbox`, `changeemail`.
-- UX y i18n: mensajes de error consistentes, soporte multilenguaje.
-- Documentación de entorno: especificar todas las variables requeridas y sus valores seguros.
-- Gestión de secretos: rotación periódica y almacenamiento en vault.
-- Protección anti-bots: opcional, añadir CAPTCHA en flujos de registro/login/OTP si el riesgo lo amerita.
+## Low priority
+- Observability: metrics and structured logs; request-id traceability.
+- Tests: unit and e2e for login/refresh/OTP/magic link/change email/reauth.
+- Performance: TTL indexes and periodic cleanup of `otp`, `magiclinks`, `outbox`, `changeemail` collections.
+- UX and i18n: consistent error messages, multi-language support.
+- Environment docs: specify all required variables and secure values.
+- Secret management: periodic rotation and vault storage.
+- Anti-bot protection: optional, add CAPTCHA in registration/login/OTP flows if risk warrants.
 
-## Notas de Implementación
-- Config al arranque: validar obligatoriamente presencia de secretos y orígenes CORS; fallar “fast” si faltan.
-- Consistencia de cookies: `HttpOnly`, `SameSite=Strict`, `Secure` en producción, y scopes de ruta controlados.
-- Unificación de estados y códigos: usar `401/403/404/429/410` coherentemente; evitar fugas de información.
+## Implementation notes
+- Startup config: strictly validate presence of secrets and CORS origins; fail fast if missing.
+- Cookie consistency: `HttpOnly`, `SameSite=Strict`, `Secure` in production, and controlled path scopes.
+- Unified statuses and codes: use `401/403/404/429/410` coherently; avoid information leaks.
 
-## Referencias de Código (guía de dónde tocar)
-- Secretos JWT: `lib/auth.ts:7`, `lib/auth.ts:92`, `app/api/auth-client/admin/login/route.ts:6`.
+## Code references (where to change)
+- JWT secrets: `lib/auth.ts:7`, `lib/auth.ts:92`, `app/api/auth-client/admin/login/route.ts:6`.
 - Magic link: `app/api/auth-client/magic-link/send/route.ts:58-83`, `consume/route.ts:37-58`.
 - OTP: `app/api/stmp/templates/route.ts`, `app/api/auth-client/reset-password/request/route.ts:44-49`, `reauth/request/route.ts:45-50`, `change-email/start/route.ts:67-72`, `request-new/route.ts:48-53`.
 - Refresh: `app/api/auth-client/refresh/route.ts:58-64`.
-- Admin aislamiento: `lib/auth.ts:102-115`, `app/api/auth-client/admin/login/route.ts`.
+- Admin isolation: `lib/auth.ts:102-115`, `app/api/auth-client/admin/login/route.ts`.

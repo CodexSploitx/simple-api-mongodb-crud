@@ -1,81 +1,63 @@
-# Verificación de Email por OTP (Auth-Client)
+# Email Verification via OTP (Auth-Client)
 
-## Objetivo
-- Obligar (opcional) que el usuario verifique su email con un código OTP antes de poder iniciar sesión.
-- Todo se configura y se gestiona desde el microservicio Auth‑Client y su módulo SMTP.
+## Goal
+- Optionally require users to verify their email with an OTP before login.
+- Fully managed by the Auth-Client microservice and its SMTP module.
 
-## Configuración
-- Toggle UI: en `SMTP → Configuration` habilita `Require email verification to login`.
+## Configuration
+- Toggle in UI: `Notifications → SMTP` enable `Require email verification to login`.
 - API: `GET/POST /api/stmp/settings`
-  - Campo `requireEmailVerificationLogin: boolean`.
-  - Si está en `true`, el login devuelve `403` cuando `verifiEmail !== true`.
+  - Field `requireEmailVerificationLogin: boolean`.
+  - When `true`, login returns `403` if `verifiEmail !== true`.
 
-## Eventos y plantillas
-- Evento: `confirm_sign_up`.
-- Endpoint: `GET/POST /api/stmp/events` para activar/desactivar eventos.
-- Endpoint: `GET/POST /api/stmp/templates` para gestionar plantillas.
-- Placeholders soportados en plantillas:
+## Events and templates
+- Event: `confirm_sign_up`.
+- Manage events: `GET/POST /api/stmp/events`.
+- Manage templates: `GET/POST /api/stmp/templates`.
+- Supported placeholders in templates:
   - `{{ .EmailUSer }}`
   - `{{ .UserName }}`
   - `{{ .CodeConfirmation }}`
   - `{{ .SiteURL }}`
   - `{{ ._id }}`
 
-## Flujo estándar
-1) Registro de usuario
+## Standard flow
+1) User registration
 - `POST /api/auth-client/register`
-- Si `confirm_sign_up` está activo, se encola/envía un email usando la plantilla activa.
-- Si la plantilla contiene `{{ .CodeConfirmation }}`, se genera OTP y se adjunta en el email.
+- If `confirm_sign_up` is active, an email is queued/sent with the active template.
+- If the template includes `{{ .CodeConfirmation }}`, an OTP is generated and included in the email.
 
-2) Verificar OTP
+2) Verify OTP
 - `POST /api/stmp/otp/verify`
 - Body: `{ "userId": "<id>", "code": "<otp>" }`
-- Valida el código (no usado y dentro de vigencia) y marca el usuario como `verifiEmail: true`.
+- Validates the OTP (unused and not expired) and sets `verifiEmail: true`.
 
-3) Iniciar sesión
+3) Login
 - `POST /api/auth-client/login`
-- Si `requireEmailVerificationLogin === true` y el usuario no verificó, responde `403` con `{ "error": "Email no verificado" }`.
-- Si el toggle está `false`, permite login sin verificación.
+- If `requireEmailVerificationLogin === true` and the user has not verified, returns `403 { "error": "Email not verified" }`.
+- If the toggle is `false`, login is allowed without verification.
 
-## Endpoints de soporte
-- Crear OTP (sin enviar email): `POST /api/stmp/otp/create`
+## Support endpoints
+- Create OTP (without sending email): `POST /api/stmp/otp/create`
   - Body: `{ "userId": "<id>", "eventKey": "confirm_sign_up", "ttlSeconds": 600 }`
-  - Responde `{ success, code, expiresAt }`.
-- Enviar email de evento: `POST /api/stmp/send`
+  - Returns `{ success, code, expiresAt }`.
+- Send event email: `POST /api/stmp/send`
   - Body: `{ "eventKey": "confirm_sign_up", "userId": "<id>" }`
-  - Si la plantilla incluye `{{ .CodeConfirmation }}`, se genera OTP y se añade al cuerpo.
+  - If the template includes `{{ .CodeConfirmation }}`, an OTP is generated and added to the body.
 
-### Endpoint público: Request OTP
+### Public endpoint: Request OTP
+- `POST /api/auth-client/login/request-otp`
+- Body: `{ "identifier": "email OR username" }`
+- Return: always `200 { success: true }` to avoid user enumeration.
+- Behavior: see `app/api/auth-client/login/request-otp/route.ts` for throttling and per-user caps.
 
-- **POST** `/api/auth-client/login/request-otp`
-- **Body**: `{ "identifier": "email OR username" }`
-- **Retorno**: Siempre `200 { success: true }` para evitar revelar si el usuario existe (no enumeration).
-- **Comportamiento**:
-  - Busca al usuario por `email` o `username` en `AUTH_CLIENT_DB/users`.
-  - Verifica que el evento `confirm_sign_up` esté activo y haya plantilla activa.
-  - Si la plantilla contiene `{{ .CodeConfirmation }}`:
-    - Genera un OTP con TTL 10 min y guarda `{ attempts: 0, maxAttempts: 5 }`.
-    - Throttling: no reemite si existe uno activo creado en el último minuto.
-    - Rate cap por usuario: máximo 5 OTP por hora.
-  - Encola y envía el email con el OTP si SMTP está configurado.
-- **Implementación**: `app/api/auth-client/login/request-otp/route.ts`.
-
-#### Ejemplo
-```
-POST /api/auth-client/login/request-otp
-{ "identifier": "user@example.com" }
-
-// 200 OK
-{ "success": true }
-```
-
-## Ejemplos
-- Registro:
+## Examples
+- Register:
 ```
 POST /api/auth-client/register
 { "email": "user@example.com", "username": "User", "password": "StrongP@ss1" }
 ```
-- Verificar OTP:
+- Verify OTP:
 ```
 POST /api/stmp/otp/verify
 { "userId": "69289ee8692159244ed49b52", "code": "123456" }
@@ -86,43 +68,34 @@ POST /api/auth-client/login
 { "identifier": "user@example.com", "password": "StrongP@ss1" }
 ```
 
-## Comportamiento del login
-- Implementado en `app/api/auth-client/login/route.ts`.
-- Lee configuración desde `stmpdb.config` y aplica la regla de verificación.
+## Login behavior
+- Implemented in `app/api/auth-client/login/route.ts`.
+- Reads configuration from `stmpdb.config` and enforces the verification rule.
 
-## Persistencia y expiración
-- OTP se almacena en `{ db: STMP_DB || AUTH_CLIENT_DB, collection: STMP_OTP || "otp" }`.
-- Expira típicamente a los 10 minutos; configurable con `ttlSeconds` en `otp/create`.
+## Persistence and expiry
+- OTP is stored in `{ db: STMP_DB || AUTH_CLIENT_DB, collection: STMP_OTP || "otp" }`.
+- Expires typically after 10 minutes; configurable via `ttlSeconds` in `otp/create`.
 
-### Limitador de intentos (verification)
-- Cada OTP guarda `attempts` y `maxAttempts`.
-- Si el código ingresado es incorrecto:
-  - Incrementa `attempts`.
-  - Al alcanzar `maxAttempts` (por defecto 5), desactiva el OTP y responde `429 { error: "Too many attempts" }`.
-- Implementación: `app/api/stmp/otp/verify/route.ts`.
+### Attempt limiter (verification)
+- Each OTP holds `attempts` and `maxAttempts`.
+- If the code is wrong:
+  - Increments `attempts`.
+  - At `maxAttempts` (default 5), deactivates the OTP and returns `429 { error: "Too many attempts" }`.
+- Implementation: `app/api/stmp/otp/verify/route.ts`.
 
-#### Ejemplos
-```
-// Código incorrecto
-400 { "success": false, "error": "Invalid code" }
+## Common errors
+- `400 Invalid or expired code`
+- `403 Email not verified` (login while toggle is active)
+- `404 No active template for event` when sending email without an active template
 
-// Demasiados intentos
-429 { "success": false, "error": "Too many attempts" }
-```
-
-## Errores típicos
-- `400 Invalid or expired code`: OTP incorrecto o expirado.
-- `403 Email not verified`: intento de login sin verificación cuando el toggle está activo.
-- `404 No active template for event`: al enviar email sin plantilla activa para el evento.
-
-## Referencias de código
+## Code references
 - Request OTP: `app/api/auth-client/login/request-otp/route.ts:26-30`, `50-60`, `66-92`.
-- Generación de OTP en registro: `app/api/auth-client/register/route.ts:101-107`.
-- Generación de OTP en envío: `app/api/stmp/send/route.ts:71-78`.
-- Verificación con límite de intentos: `app/api/stmp/otp/verify/route.ts:18-31`.
+- OTP generation in registration: `app/api/auth-client/register/route.ts:101-107`.
+- OTP generation in send: `app/api/stmp/send/route.ts:71-78`.
+- Verification with attempt limits: `app/api/stmp/otp/verify/route.ts:18-31`.
 
-## Recomendaciones de integración
-- Mostrar en tu UI un paso “Verifica tu email” tras registrarse si el toggle está activo.
-- Añadir un botón “Enviar código” que llame a `POST /api/stmp/send` con `eventKey: "confirm_sign_up"`.
-- En la pantalla de verificación, manejar reintentos y mostrar tiempo restante si deseas.
-- Tras verificar OTP con éxito, redirigir al login o refrescar el estado del usuario.
+## Integration tips
+- Show a "Verify your email" step in your UI after registration if the toggle is active.
+- Add a "Send code" button that calls `POST /api/stmp/send` with `eventKey: "confirm_sign_up"`.
+- In the verification screen, handle retries and optionally show remaining time.
+- After a successful OTP verification, redirect to login or refresh the user state.

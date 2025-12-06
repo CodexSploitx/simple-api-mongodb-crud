@@ -1,54 +1,54 @@
-# Auth-Client: definición y límites
+# Auth-Client: definition and boundaries
 
-## Qué es
-- Microservicio de autenticación independiente para aplicaciones cliente.
-- Gestiona usuarios en `AUTH_CLIENT_DB` y `AUTH_CLIENT_COLLECTION`.
-- Emite `accessToken` (JWT) y mantiene `refreshToken` en cookie HTTP-only.
-- Modelo de usuario mínimo:
+## What it is
+- Independent authentication microservice for client applications.
+- Manages users in `AUTH_CLIENT_DB` and `AUTH_CLIENT_COLLECTION`.
+- Issues `accessToken` (JWT) and maintains `refreshToken` in an HTTP-only cookie.
+- Minimal user model:
   - `_id`, `email`, `username`, `password` (hash), `tokenVersion`, `createdAt`, `updatedAt`, `verifiEmail`.
 
-## Qué NO es
-- No es el login de la app principal MongoDB CRUD.
-- No usa ni mezcla colecciones/DB de la app principal (`AUTH_DB_USERS`, `AUTH_DB_COLLECTION`).
-- No maneja permisos CRUD ni campos como `permissions.*` ni `authClientAccess`.
-- No añade ni usa `{{ .permissions.* }}` ni `{{ .Token }}` en plantillas.
+## What it is NOT
+- It is not the login for the main MongoDB CRUD app.
+- It does not use or mix collections/DB from the main app (`AUTH_DB_USERS`, `AUTH_DB_COLLECTION`).
+- It does not handle CRUD permissions nor fields like `permissions.*` or `authClientAccess`.
+- Do not include `{{ .permissions.* }}` nor `{{ .Token }}` in templates.
 
-## Entorno (solo Auth-Client)
+## Environment (Auth-Client only)
 - `AUTH_CLIENT_DB=authclient`
 - `AUTH_CLIENT_COLLECTION=users`
 - `AUTH_CLIENT_DELETE_USERS=deleteusers`
-- `JWT_AUTH_CLIENT` y `JWT_AUTH_CLIENT_EXPIRATION`
+- `JWT_AUTH_CLIENT` and `JWT_AUTH_CLIENT_EXPIRATION`
 - `CORS_AUTH_CLIENT`, `RELACIONALDB_AUTH_CLIENT`
 
-## Endpoints principales
-- `POST /api/auth-client/register` crea usuario y responde `accessToken`.
-- `POST /api/auth-client/login` valida credenciales y responde `accessToken`.
-- `POST /api/auth-client/refresh` renueva `accessToken` usando `refreshToken`.
+## Main endpoints
+- `POST /api/auth-client/register` creates user and returns `accessToken`.
+- `POST /api/auth-client/login` validates credentials and returns `accessToken`.
+- `POST /api/auth-client/refresh` renews `accessToken` using `refreshToken`.
 
-## Verificación de email (OTP)
-- Configuración central en DB vía `GET/POST /api/stmp/settings`.
-- Flag `requireEmailVerificationLogin` obliga que `verifiEmail === true` para iniciar sesión.
-- Flujo OTP:
-  - Envío de email con plantilla activa del evento `confirm_sign_up` (`/api/stmp/send` o automático tras registro si está activo el evento).
-  - Verificación `POST /api/stmp/otp/verify` marca `verifiEmail: true`.
-  - Login rechaza con 403 `Email no verificado` si el flag está activo y el usuario no verificó.
+## Email verification (OTP)
+- Central settings via `GET/POST /api/stmp/settings`.
+- Flag `requireEmailVerificationLogin` enforces `verifiEmail === true` for login.
+- OTP flow:
+  - Email send using active template of `confirm_sign_up` (`/api/stmp/send` or automatic after registration if event is active).
+  - Verification `POST /api/stmp/otp/verify` sets `verifiEmail: true`.
+  - Login rejects with `403 Email not verified` when the flag is active and the user has not verified.
 
-## Plantillas SMTP (placeholders soportados)
-- `{{ .EmailUSer }}` email del usuario
-- `{{ .UserName }}` nombre del usuario
-- `{{ .CodeConfirmation }}` código OTP
-- `{{ .SiteURL }}` URL del sitio
-- `{{ ._id }}` id del usuario
-- No usar `{{ .permissions.* }}` ni `{{ .Token }}`.
+## SMTP templates (supported placeholders)
+- `{{ .EmailUSer }}` user email
+- `{{ .UserName }}` user name
+- `{{ .CodeConfirmation }}` OTP code
+- `{{ .SiteURL }}` site URL
+- `{{ ._id }}` user ID
+- Do not use `{{ .permissions.* }}` nor `{{ .Token }}`.
 
-## Separación estricta
-- Importar y consultar únicamente `AUTH_CLIENT_DB/ AUTH_CLIENT_COLLECTION` para usuarios.
-- No leer ni escribir en colecciones de la app principal.
-- Mantener la lógica de permisos fuera de Auth-Client.
-- Las plantillas y configuración SMTP viven en la colección/configuración de SMTP del microservicio.
+## Strict isolation
+- Import and query only `AUTH_CLIENT_DB/ AUTH_CLIENT_COLLECTION` for users.
+- Do not read or write to the main app collections.
+- Keep permissions logic outside Auth-Client.
+- Templates and SMTP settings live in the microservice's SMTP configuration/collections.
 
-## Checklist rápido
-- [ ] ¿Usas `AUTH_CLIENT_DB` y `AUTH_CLIENT_COLLECTION`?
-- [ ] ¿El login aplica `requireEmailVerificationLogin` desde DB?
-- [ ] ¿No hay referencias a `permissions.*` ni colecciones de la app principal?
-- [ ] ¿Las plantillas usan solo los placeholders soportados?
+## Quick checklist
+- [ ] Are you using `AUTH_CLIENT_DB` and `AUTH_CLIENT_COLLECTION`?
+- [ ] Does login enforce `requireEmailVerificationLogin` from DB?
+- [ ] No references to `permissions.*` nor main app collections?
+- [ ] Do templates use only supported placeholders?

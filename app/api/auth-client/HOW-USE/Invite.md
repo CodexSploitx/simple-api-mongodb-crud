@@ -1,82 +1,82 @@
-# Evento "Invite user"
+# "Invite user" event
 
-Guía para que los desarrolladores integren el envío de invitaciones de registro a nuevos usuarios desde Auth-Client.
+Guide to integrate sending registration invitations to new users from Auth-Client.
 
-## Qué es
-- Permite que un usuario autenticado envíe un correo de invitación a otra persona para registrarse.
-- El correo se renderiza con una plantilla del evento `invite_user` y soporta variables opcionales para promos/recompensas.
+## What it is
+- Allows an authenticated user to send an invitation email to another person to register.
+- The email is rendered with the `invite_user` event template and supports optional variables for promos/rewards.
 
-## Requisitos previos
-- Debes estar autenticado con Auth-Client para poder enviar invitaciones.
-- Debe existir una plantilla activa para el evento `invite_user` en el editor de templates.
-  - Editor y placeholders del evento: `app/auth-client/components/Templates/TemplatesModal.tsx:122-141`.
+## Prerequisites
+- You must be authenticated with Auth-Client to send invitations.
+- An active template for the `invite_user` event must exist in the template editor.
+  - Editor and placeholders for the event: `app/auth-client/components/Templates/TemplatesModal.tsx:122-141`.
 
-## Configuración
-- Administrable vía `GET/POST /api/stmp/settings`.
-- Campos relevantes:
-  - `inviteTokenTtlHours`: horas de vida del token de invitación (TTL).
-  - `inviteCooldownSeconds` y `inviteMaxPerHour`: valores disponibles para control de ritmo; el endpoint actualmente usa `inviteTokenTtlHours` para calcular expiración del token.
-- Implementación de settings: `app/api/stmp/settings/route.ts:6-14`, `app/api/stmp/settings/route.ts:16-32`, `app/api/stmp/settings/route.ts:34-75`.
+## Settings
+- Managed via `GET/POST /api/stmp/settings`.
+- Relevant fields:
+  - `inviteTokenTtlHours`: token lifetime in hours (TTL).
+  - `inviteCooldownSeconds` and `inviteMaxPerHour`: available values for rate control; the endpoint currently uses `inviteTokenTtlHours` to calculate token expiration.
+- Settings implementation: `app/api/stmp/settings/route.ts:6-14`, `16-32`, `34-75`.
 
-## Placeholders soportados
-Solo disponibles en plantillas del evento `invite_user`:
-- `{{ .EmailUSer }}`: email del invitado.
-- `{{ .UserName }}`: nombre a mostrar del invitado (se deriva del email si no existe nombre real).
-- `{{ .Token }}`: token de invitación generado y almacenado.
-- `{{ .SiteURL }}`: URL base del sitio/API.
-- Opcionales según lo que envíe el cliente:
+## Supported placeholders
+Only available in `invite_user` event templates:
+- `{{ .EmailUSer }}`: invitee email
+- `{{ .UserName }}`: invitee display name (derived from email if missing)
+- `{{ .Token }}`: invitation token generated and stored
+- `{{ .SiteURL }}`: site/API base URL
+- Optional depending on what the client sends:
   - `{{ .PromoCode }}`
   - `{{ .RewardTitle }}`
   - `{{ .RewardText }}`
 
-En UI, estos placeholders se muestran únicamente cuando `eventKey === "invite_user"`. Referencia: `app/auth-client/components/Templates/TemplatesModal.tsx:132-141`, `app/auth-client/components/Templates/TemplatesModal.tsx:143-156`.
+In the UI, these placeholders appear only when `eventKey === "invite_user"`. See: `app/auth-client/components/Templates/TemplatesModal.tsx:132-141`, `143-156`.
 
-## Endpoint de envío
+## Send endpoint
 `POST /api/auth-client/invitations/send`
 
-- Autenticación: requerida (solo usuarios logueados).
-- Body JSON:
-  ```json
-  {
-    "email": "invitee@example.com",
-    "promoCode": "WELCOME10",
-    "rewardTitle": "Welcome Bonus",
-    "rewardText": "Get 10% off on your first purchase."
-  }
-  ```
-- Respuesta:
+- Authentication: required (only logged-in users).
+- JSON Body:
+```json
+{
+  "email": "invitee@example.com",
+  "promoCode": "WELCOME10",
+  "rewardTitle": "Welcome Bonus",
+  "rewardText": "Get 10% off on your first purchase."
+}
+```
+- Response:
   - `200 OK { "success": true, "token": "<INVITE_TOKEN>" }`
-  - Errores comunes: `400 { error: "Invalid email" }`, `404 { error: "No active template" }`, `400 { error: "Event not active" }`.
+  - Common errors: `400 { error: "Invalid email" }`, `404 { error: "No active template" }`, `400 { error: "Event not active" }`.
 
-Implementación: `app/api/auth-client/invitations/send/route.ts:10-13`, `app/api/auth-client/invitations/send/route.ts:17-26`, `app/api/auth-client/invitations/send/route.ts:27-39`.
+Implementation: `app/api/auth-client/invitations/send/route.ts:10-13`, `17-26`, `27-39`.
 
-## Flujo de procesamiento
-1. Validación y autenticación del solicitante.
-2. Lectura de configuración STMP y verificación de que el evento `invite_user` esté activo.
-3. Selección de plantilla activa para `invite_user`.
-4. Generación de token y persistencia en colección de invitaciones con `expiresAt`.
-5. Render de placeholders y encolado en `outbox` para envío SMTP.
-6. Intento de envío inmediato; si falla, el correo queda encolado.
+## Processing flow
+1. Validate and authenticate the requester.
+2. Read SMTP configuration and verify `invite_user` is active.
+3. Select active template for `invite_user`.
+4. Generate token and persist invitation with `expiresAt`.
+5. Render placeholders and enqueue in `outbox` for SMTP send.
+6. Attempt immediate send; if it fails, the email remains queued.
 
-Referencias clave:
-- Generación y persistencia de token: `app/api/auth-client/invitations/send/route.ts:41-47`.
-- Reemplazo de placeholders: `app/api/auth-client/invitations/send/route.ts:50-59`.
-- Encolado y envío: `app/api/auth-client/invitations/send/route.ts:64-72`.
+Key references:
+- Token generation and persistence: `app/api/auth-client/invitations/send/route.ts:41-47`.
+- Placeholder replacement: `app/api/auth-client/invitations/send/route.ts:50-59`.
+- Enqueue and send: `app/api/auth-client/invitations/send/route.ts:64-72`.
 
-## Persistencia y seguridad
-- Invitaciones se guardan en la colección `STMP_INVITES` (por defecto `invites`) dentro del `db` de STMP. Referencia: `app/api/auth-client/invitations/send/route.ts:41-47`.
-- TTL del token: definido por `inviteTokenTtlHours` y usado para calcular `expiresAt`. Referencia: `app/api/auth-client/invitations/send/route.ts:43-45`.
-- Solo usuarios autenticados pueden crear invitaciones. Referencia: `app/api/auth-client/invitations/send/route.ts:11-13`.
-- Sanitización básica del HTML de correo se realiza en el proceso de envío; además, el editor aplica sanitización para `preview`.
+## Persistence and security
+- Invitations are stored in the `STMP_INVITES` collection (default `invites`) within the SMTP `db`. See: `app/api/auth-client/invitations/send/route.ts:41-47`.
+- Token TTL: defined by `inviteTokenTtlHours` and used to compute `expiresAt`. See: `app/api/auth-client/invitations/send/route.ts:43-45`.
+- Only authenticated users can create invitations. See: `app/api/auth-client/invitations/send/route.ts:11-13`.
+- Email HTML sanitization is performed during the send process; the editor also sanitizes for `preview`.
 
-## Cómo construir el enlace de invitación
-- Usa `{{ .Token }}` dentro de tu template para incrustar el token en un enlace, por ejemplo:
-  ```html
-  <a href="{{ .SiteURL }}/register?invite={{ .Token }}">Regístrate ahora</a>
-  ```
-- La app que recibe el enlace debe leer `invite` del querystring y aplicarlo a su flujo de registro.
+## Build the invitation link
+- Use `{{ .Token }}` in your template to embed the token in a link, for example:
+```html
+<a href="{{ .SiteURL }}/register?invite={{ .Token }}">Register now</a>
+```
+- The application that handles the link should read `invite` from the query string and apply it to its registration flow.
 
-## Ejemplo cURL
+## Example cURL
 ```bash
 curl -X POST "http://localhost:3000/api/auth-client/invitations/send" \
   -H "Authorization: Bearer <ACCESS_TOKEN>" \
@@ -89,8 +89,8 @@ curl -X POST "http://localhost:3000/api/auth-client/invitations/send" \
       }'
 ```
 
-## Buenas prácticas
-- No incluyas datos sensibles en el HTML de la invitación.
-- Activa solo una plantilla por evento para evitar confusión.
-- Ajusta `inviteTokenTtlHours` según la caducidad deseada del enlace.
-- Mantén controlados los valores de `inviteCooldownSeconds` y `inviteMaxPerHour` si integras limitadores de ritmo.
+## Best practices
+- Do not include sensitive data in the invitation HTML.
+- Keep only one active template per event to avoid confusion.
+- Adjust `inviteTokenTtlHours` per your desired link expiration policy.
+- Keep `inviteCooldownSeconds` and `inviteMaxPerHour` under control if you integrate rate limiters.
