@@ -3,6 +3,9 @@
 A consolidated index of practical guides for integrating and operating the Auth-Client module.
 
 ## Guides
+- Register: `./Register.md`
+  - Input validation, persistence, tokens & cookies, optional email verification.
+  - Route reference and usage examples.
 - CORS: `./CORS.md`
   - Enable/disable whitelist, manage allowed origins, error behavior (`Blocked by CORS`).
   - UI: `Settings → CORS`. Tabs: `app/auth-client/page.tsx:20-24`. Render: `app/auth-client/page.tsx:162-163`.

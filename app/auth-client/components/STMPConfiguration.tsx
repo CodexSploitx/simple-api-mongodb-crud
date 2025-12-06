@@ -114,8 +114,8 @@ export default function STMPConfiguration() {
   const addOrigin = async () => {
     const url = newOrigin.trim();
     if (!url) return;
-    if (!/^https?:\/\//i.test(url)) {
-      setError("Invalid origin. Use http(s)://...");
+    if (!/^(https?:\/\/|chrome-extension:\/\/|moz-extension:\/\/|safari-extension:\/\/)/i.test(url)) {
+      setError("Invalid origin. Use http(s):// or browser extension schemes");
       return;
     }
     if (corsOrigins.includes(url)) {
@@ -149,8 +149,8 @@ export default function STMPConfiguration() {
   const saveEdit = async () => {
     if (editIndex === null) return;
     const val = editValue.trim();
-    if (!/^https?:\/\//i.test(val)) {
-      setError("Invalid origin. Use http(s)://...");
+    if (!/^(https?:\/\/|chrome-extension:\/\/|moz-extension:\/\/|safari-extension:\/\/)/i.test(val)) {
+      setError("Invalid origin. Use http(s):// or browser extension schemes");
       return;
     }
     const next = corsOrigins.map((v, i) => (i === editIndex ? val : v));
@@ -193,13 +193,13 @@ export default function STMPConfiguration() {
         </button>
       </div>
       <div className="mt-2">
-        <div className="text-xs text-[var(--text-muted)] mb-1">Allowed origin</div>
+        <div className="text-xs text-[var(--text-muted)] mb-1">Allowed origin (http/https or extension: chrome/moz/safari)</div>
         <div className="flex gap-2 mb-2">
           <input
             className="flex-1 text-sm px-2 py-1 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)]"
             value={newOrigin}
             onChange={(e) => setNewOrigin(e.target.value)}
-            placeholder="http://localhost:3000"
+            placeholder="http://localhost:3000 or chrome-extension://<ID>"
           />
           <button
             className={`px-3 py-1 rounded text-sm ${loading ? "opacity-50 cursor-not-allowed" : "bg-[var(--accent)] text-white"}`}

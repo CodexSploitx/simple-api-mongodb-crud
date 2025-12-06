@@ -17,6 +17,33 @@ export interface UserRecord {
   tokenVersion: number;
   createdAt: Date;
   updatedAt: Date;
+  verifiEmail?: boolean;
+  registrationMeta?: {
+    ip?: {
+      address?: string;
+      source?: string;
+      country?: string;
+      region?: string;
+      city?: string;
+      latitude?: number;
+      longitude?: number;
+      isp?: string;
+      asn?: string | number;
+    };
+    userAgent?: string;
+    device?: {
+      type?: 'desktop' | 'mobile' | 'tablet' | 'bot' | 'unknown';
+      os?: string;
+      browser?: string;
+      version?: string;
+    };
+    locale?: {
+      language?: string;
+      raw?: string;
+    };
+    demographics?: Record<string, unknown>;
+    timestamp?: Date | string;
+  };
 }
 
 export interface UserManagementAction {

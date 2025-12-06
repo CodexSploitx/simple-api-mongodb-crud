@@ -29,7 +29,8 @@ export async function POST(request: Request) {
 
   try {
     // Rate Limit
-    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const ipHeader = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "";
+    const ip = String(ipHeader).split(",").map((s)=>s.trim()).filter(Boolean)[0] || "unknown";
     checkRateLimit(ip, 5, 60000); // 5 requests per minute
 
     const body = await request.json();
@@ -44,6 +45,46 @@ export async function POST(request: Request) {
     }
 
     const { email, username, password } = result.data;
+    const userAgent = String(request.headers.get("user-agent") || "").slice(0, 512);
+    const acceptLanguage = String(request.headers.get("accept-language") || "").slice(0, 128);
+    const hdrCountry = String(request.headers.get("x-vercel-ip-country") || request.headers.get("cf-ipcountry") || request.headers.get("x-geo-country") || "").slice(0, 64);
+    const parseDevice = (ua: string) => {
+      const lower = ua.toLowerCase();
+      const isMobile = /mobile|android|iphone|ipad|ipod/.test(lower);
+      const isTablet = /ipad|tablet/.test(lower);
+      const type = isMobile ? (isTablet ? "tablet" : "mobile") : /bot|crawler|spider/.test(lower) ? "bot" : "desktop";
+      const os = /windows/.test(lower) ? "Windows" : /mac os|macintosh/.test(lower) ? "macOS" : /android/.test(lower) ? "Android" : /ios|iphone|ipad|ipod/.test(lower) ? "iOS" : /linux/.test(lower) ? "Linux" : "unknown";
+      const browser = /edg\//.test(lower) ? "Edge" : /chrome\//.test(lower) && !/edg\//.test(lower) ? "Chrome" : /safari\//.test(lower) && !/chrome\//.test(lower) ? "Safari" : /firefox\//.test(lower) ? "Firefox" : /opera|opr\//.test(lower) ? "Opera" : "unknown";
+      const versionMatch = ua.match(/(chrome|firefox|safari|edg|opr)\/([\d.]+)/i);
+      const version = versionMatch ? versionMatch[2] : "";
+      return { type, os, browser, version };
+    };
+    const device = parseDevice(userAgent);
+    const language = acceptLanguage.split(",")[0]?.trim() || "";
+    let geo: Record<string, unknown> = {};
+    if (process.env.ENABLE_GEO_LOOKUP === "true" && ip !== "unknown") {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 2000);
+        const res = await fetch(`https://ipapi.co/${encodeURIComponent(ip)}/json/`, { signal: ctrl.signal });
+        clearTimeout(t);
+        if (res.ok) {
+          const j = await res.json().catch(() => null);
+          if (j && typeof j === "object") {
+            geo = {
+              country: String(j.country_name || hdrCountry || ""),
+              region: String(j.region || j.region_code || ""),
+              city: String(j.city || ""),
+              latitude: typeof j.latitude === "number" ? j.latitude : Number(j.latitude || 0),
+              longitude: typeof j.longitude === "number" ? j.longitude : Number(j.longitude || 0),
+              isp: String(j.org || j.org_name || ""),
+              asn: j.asn || j.asn_number || undefined,
+            };
+          }
+        }
+      } catch {}
+    }
+
     const collection = await getCollection(DB_NAME, COLLECTION_NAME);
 
     // Check if user exists
@@ -75,6 +116,14 @@ export async function POST(request: Request) {
       verifiEmail: requireVerify ? false : true,
       createdAt: new Date(),
       updatedAt: new Date(),
+      registrationMeta: {
+        ip: { address: ip, source: ipHeader ? "x-forwarded-for" : "unknown", country: String(geo?.country || hdrCountry || "").trim() || undefined, region: String((geo as Record<string, unknown>)?.region || "").trim() || undefined, city: String((geo as Record<string, unknown>)?.city || "").trim() || undefined, latitude: (geo as Record<string, unknown>)?.latitude as number | undefined, longitude: (geo as Record<string, unknown>)?.longitude as number | undefined, isp: String((geo as Record<string, unknown>)?.isp || "").trim() || undefined, asn: (geo as Record<string, unknown>)?.asn as string | number | undefined },
+        userAgent,
+        device,
+        locale: { language, raw: acceptLanguage },
+        demographics: {},
+        timestamp: new Date(),
+      },
     };
 
     const insertResult = await collection.insertOne(newUser);

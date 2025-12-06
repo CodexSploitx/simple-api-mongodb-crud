@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { UserRecord, DeleteUserResponse } from "../types";
 import { deleteUser, revokeUserTokens } from "../utils/adminAuth";
 import ConfirmDialog from "./ConfirmDialog";
 import PasswordChangeModal from "./PasswordChangeModal";
 import DeleteUserModal from "./DeleteUserModal";
+import { ChevronLeftIcon, ChevronRightIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from "@heroicons/react/24/outline";
 
 interface UserTableProps {
   users: UserRecord[];
@@ -13,6 +14,15 @@ interface UserTableProps {
 }
 
 export default function UserTable({ users, onUpdate }: UserTableProps) {
+  const pageSize = 10;
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [users]);
+  const totalPages = Math.max(1, Math.ceil(users.length / pageSize));
+  const visibleUsers = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    return users.slice(start, end);
+  }, [users, page]);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -78,7 +88,7 @@ export default function UserTable({ users, onUpdate }: UserTableProps) {
 
   return (
     <>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-96 overflow-y-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--border)]">
@@ -91,7 +101,7 @@ export default function UserTable({ users, onUpdate }: UserTableProps) {
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {visibleUsers.map((user) => (
               <tr key={user._id} className="border-b border-[var(--border)] hover:bg-[var(--surface)] transition-colors">
                 <td className="py-3 px-4 text-sm text-[var(--text-muted)] font-mono">{user._id.slice(-8)}</td>
                 <td className="py-3 px-4 text-sm text-[var(--text)]">{user.email}</td>
@@ -134,6 +144,50 @@ export default function UserTable({ users, onUpdate }: UserTableProps) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="flex items-center justify-center mt-4">
+        <div className="inline-flex items-center rounded-md border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+          <button
+            onClick={() => setPage(1)}
+            disabled={page <= 1}
+            className="cursor-pointer h-8 px-2 text-xs text-[var(--text-muted)] disabled:opacity-50 hover:bg-[var(--border)]"
+            title="First"
+            aria-label="First page"
+          >
+            <ChevronDoubleLeftIcon className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            className="cursor-pointer h-8 px-2 text-xs text-[var(--text-muted)] disabled:opacity-50 hover:bg-[var(--border)]"
+            title="Previous"
+            aria-label="Previous page"
+          >
+            <ChevronLeftIcon className="w-4 h-4" />
+          </button>
+          <div className="px-3 h-8 flex items-center text-xs text-[var(--text-muted)] border-x border-[var(--border)]">
+            {page}/{totalPages}
+          </div>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            className="cursor-pointer h-8 px-2 text-xs text-[var(--text-muted)] disabled:opacity-50 hover:bg-[var(--border)]"
+            title="Next"
+            aria-label="Next page"
+          >
+            <ChevronRightIcon className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setPage(totalPages)}
+            disabled={page >= totalPages}
+            className="cursor-pointer h-8 px-2 text-xs text-[var(--text-muted)] disabled:opacity-50 hover:bg-[var(--border)]"
+            title="Last"
+            aria-label="Last page"
+          >
+            <ChevronDoubleRightIcon className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <ConfirmDialog

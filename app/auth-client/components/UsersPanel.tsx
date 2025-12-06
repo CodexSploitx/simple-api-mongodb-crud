@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import type { UserRecord } from "../types";
 import UserTable from "./UserTable";
 import RegistrationChart from "./RegistrationChart";
+ 
+ 
 
 type Props = {
   users: UserRecord[];
@@ -19,12 +21,8 @@ export default function UsersPanel({ users, filteredUsers, searchQuery, onSearch
   const [range, setRange] = useState<"1d" | "7d" | "30d">("7d");
   return (
     <div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="mb-6">
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
-          <div className="text-sm text-[var(--text-muted)] mb-1">Total Users</div>
-          <div className="text-2xl font-bold text-[var(--text)]">{searchQuery ? `${filteredUsers.length} / ${users.length}` : users.length}</div>
-        </div>
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4 md:col-span-2">
           <RegistrationChart
             users={users}
             range={range}
@@ -34,7 +32,7 @@ export default function UsersPanel({ users, filteredUsers, searchQuery, onSearch
                   <button
                     key={opt}
                     onClick={() => setRange(opt)}
-                    className={`px-2 py-1 rounded-md text-xs border transition-colors ${
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] border transition-colors ${
                       range === opt
                         ? "bg-[var(--surface)] border-[var(--primary)] text-[var(--text)]"
                         : "bg-[var(--surface)] border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--card)]"
@@ -49,6 +47,7 @@ export default function UsersPanel({ users, filteredUsers, searchQuery, onSearch
           />
         </div>
       </div>
+      
 
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
         <div className="p-4 border-b border-[var(--border)] flex items-center justify-between gap-4">
